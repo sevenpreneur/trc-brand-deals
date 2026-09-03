@@ -14,7 +14,6 @@ import {
   formatDurationTick,
   formatNumber,
   formatPercent,
-  formatRangeLabel,
   formatRupiahCompact,
   isRangeValue,
   resolveRange,
@@ -83,18 +82,13 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
     <div className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6 lg:px-10">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">
-            Brand Deals — Inbound WhatsApp
+          <h1 className="text-[28px] leading-tight font-extrabold tracking-tight text-ink">
+            TRC Brand Deals
           </h1>
-          <p className="mt-1 text-sm text-ink-2">
-            TRC · {formatRangeLabel(startDate, endDate)} · zona waktu{" "}
-            {DEFAULT_TIMEZONE} · sumber: WhatsApp Cloud API (Coexistence)
+          <p className="mt-1.5 text-[13px] text-ink-2">
+            Sumber: WhatsApp Cloud API (Coexistence)
           </p>
         </div>
-        <p className="text-xs text-ink-muted">
-          Semua angka di-generate otomatis dari data percakapan — tidak ada
-          laporan manual.
-        </p>
       </header>
 
       <div className="mt-6">
@@ -104,7 +98,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
       {summaryResult.error && (
         <div
           role="alert"
-          className="mt-6 rounded-2xl border border-hairline bg-surface p-5"
+          className="mt-6 rounded-2xl border border-hairline bg-surface p-5 shadow-card"
         >
           <p className="text-sm font-semibold text-ink">
             Data tidak bisa diambil dari API
@@ -119,8 +113,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
         </div>
       )}
 
-      {/* Layer 1-2: volume & responsiveness sebagai stat tile, bukan chart —
-          story tiap kartu cuma satu angka. */}
+      {/* Volume & responsiveness jadi stat tile: story tiap kartu satu angka. */}
       <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile
           label="Inbound / hari"

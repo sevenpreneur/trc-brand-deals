@@ -20,20 +20,24 @@ export default function Card({
 }: CardProps) {
   return (
     <section
-      className={`flex min-w-0 flex-col rounded-2xl border border-hairline bg-surface p-5 ${className}`}
+      className={`flex min-w-0 flex-col rounded-2xl border border-hairline bg-surface p-6 shadow-card ${className}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-base font-semibold text-ink">{title}</h2>
+          <h2 className="text-[15px] font-bold tracking-tight text-ink">
+            {title}
+          </h2>
           {description && (
-            <p className="mt-0.5 text-sm text-ink-2">{description}</p>
+            <p className="mt-1 text-[13px] text-ink-2">{description}</p>
           )}
         </div>
         {aside}
       </div>
-      <div className="mt-4 flex-1">{children}</div>
+      <div className="mt-5 flex-1">{children}</div>
       {footnote && (
-        <p className="mt-4 text-xs leading-relaxed text-ink-muted">{footnote}</p>
+        <p className="mt-5 border-t border-hairline pt-3 text-xs leading-relaxed text-ink-muted">
+          {footnote}
+        </p>
       )}
     </section>
   );

@@ -38,7 +38,7 @@ export default function FilterBar({ range, targetSeconds }: FilterBarProps) {
       <div
         role="group"
         aria-label="Rentang tanggal"
-        className="inline-flex rounded-full bg-surface-sunken p-1"
+        className="inline-flex rounded-full border border-hairline bg-surface p-1 shadow-card"
       >
         {RANGE_PRESETS.map((preset) => (
           <button
@@ -46,9 +46,9 @@ export default function FilterBar({ range, targetSeconds }: FilterBarProps) {
             type="button"
             aria-pressed={range === preset.value}
             onClick={() => setParam("range", preset.value)}
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+            className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
               range === preset.value
-                ? "bg-surface text-ink shadow-sm"
+                ? "bg-ink text-surface"
                 : "text-ink-2 hover:text-ink"
             }`}
           >
@@ -62,7 +62,7 @@ export default function FilterBar({ range, targetSeconds }: FilterBarProps) {
         <select
           value={targetSeconds}
           onChange={(event) => setParam("target", event.target.value)}
-          className="rounded-lg border border-hairline bg-surface px-2 py-1.5 text-xs font-semibold text-ink"
+          className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink shadow-card"
         >
           {TARGET_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>

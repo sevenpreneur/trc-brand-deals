@@ -6,18 +6,12 @@ import {
   formatPhone,
   formatRupiahCompact,
   firstFilled,
-  LEAD_STATUS_LABEL,
 } from "@/lib/format";
 import EmptyState from "@/components/ui/EmptyState";
 import StatusBadge from "./StatusBadge";
-import { HeaderCell } from "./TableParts";
+import { Avatar, HeaderCell, StageChip } from "./TableParts";
 
-/**
- * Urgensi dibaca dari siapa yang bicara terakhir, bukan dari satu ambang idle:
- * pesan terakhir inbound berarti bola ada di kita dan tiap jam diam itu risiko,
- * outbound berarti kita yang menunggu brand dan diamnya wajar sampai titik
- * tertentu.
- */
+/** Urgensi dibaca dari arah pesan terakhir, bukan dari satu ambang idle. */
 const OURS_SERIOUS_HOURS = 4;
 const OURS_CRITICAL_HOURS = 24;
 const THEIRS_WARNING_HOURS = 72;
@@ -52,7 +46,7 @@ export default function NeedsActionTable({
   }
 
   return (
-    <div className="-mx-1 w-full min-w-0 overflow-x-auto">
+    <div className="-mx-3 w-full min-w-0 overflow-x-auto">
       <table className="w-full min-w-245 border-collapse text-left">
         <thead>
           <tr className="border-b border-hairline">
@@ -69,48 +63,59 @@ export default function NeedsActionTable({
           {entries.map((entry) => {
             const status = statusFor(entry);
             const fromBrand = entry.last_message_direction === "inbound";
+            const brand =
+              firstFilled(entry.brand_name, entry.full_name) ??
+              "Brand belum diisi";
+            const contact = firstFilled(entry.full_name) ?? "Kontak tanpa nama";
             return (
-              <tr key={entry.conv_id} className="border-b border-hairline/60">
-                <td className="px-1 py-3">
-                  <p className="text-sm font-semibold text-ink">
-                    {firstFilled(entry.brand_name, entry.full_name) ??
-                      "Brand belum diisi"}
-                  </p>
-                  <p className="text-xs text-ink-muted">
-                    {firstFilled(entry.full_name) ?? "Kontak tanpa nama"} ·{" "}
-                    <span className="tabular-nums">
-                      {formatPhone(entry.phone_number)}
-                    </span>
-                  </p>
+              <tr
+                key={entry.conv_id}
+                className="border-b border-hairline/60 transition-colors last:border-0 hover:bg-surface-sunken/60"
+              >
+                <td className="px-3 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <Avatar name={contact} />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-ink">
+                        {brand}
+                      </p>
+                      <p className="truncate text-xs text-ink-muted">
+                        {contact} ·{" "}
+                        <span className="tabular-nums">
+                          {formatPhone(entry.phone_number)}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
                 </td>
-                <td className="px-1 py-3 text-sm whitespace-nowrap text-ink-2">
-                  {LEAD_STATUS_LABEL[entry.lead_status] ?? entry.lead_status}
+                <td className="px-3 py-3.5">
+                  <StageChip status={entry.lead_status} />
                 </td>
-                <td className="px-1 py-3 text-right text-sm font-semibold whitespace-nowrap text-ink tabular-nums">
+                <td className="px-3 py-3.5 text-right text-sm font-bold whitespace-nowrap text-ink tabular-nums">
                   {formatRupiahCompact(entry.project_value)}
                 </td>
-                <td className="px-1 py-3 text-right whitespace-nowrap">
-                  <p className="text-sm font-semibold text-ink tabular-nums">
+                <td className="px-3 py-3.5 text-right whitespace-nowrap">
+                  <p className="text-sm font-bold text-ink tabular-nums">
                     {formatHoursWaiting(entry.idle_hours)}
                   </p>
                   <p className="text-xs text-ink-muted">
                     {fromBrand ? "pesan brand" : "balasan kita"}
                   </p>
                 </td>
-                <td className="max-w-80 px-1 py-3">
+                <td className="max-w-80 px-3 py-3.5">
                   <p className="line-clamp-3 text-sm text-ink-2">
                     {entry.note ?? "Belum ada catatan"}
                   </p>
-                  <p className="truncate text-xs text-ink-muted">
+                  <p className="mt-0.5 truncate text-xs text-ink-muted">
                     {entry.last_message_preview ||
                       `(${entry.last_message_type})`}{" "}
                     · {formatDateTime(entry.last_message_at, timezone)}
                   </p>
                 </td>
-                <td className="px-1 py-3 text-right text-sm text-ink-2 tabular-nums">
+                <td className="px-3 py-3.5 text-right text-sm text-ink-2 tabular-nums">
                   {formatPercent(entry.winning_rate, 0)}
                 </td>
-                <td className="px-1 py-3">
+                <td className="px-3 py-3.5">
                   <StatusBadge tone={status.tone} label={status.label} />
                 </td>
               </tr>

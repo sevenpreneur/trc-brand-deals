@@ -1,23 +1,21 @@
 @import "tailwindcss";
 
-/*
-  Token viz mengikuti panduan dataviz: chrome resesif, dua slot kategorikal
-  (biru/oranye) untuk seri, satu ramp ordinal biru untuk lead status, dan ramp
-  sequential biru untuk heatmap. Nilai dark mode dipilih untuk surface gelap,
-  bukan hasil pembalikan otomatis.
-*/
+/* Chrome netral dingin supaya warna chart jadi satu-satunya yang bicara. */
 :root {
-  --plane: #f9f9f7;
-  --surface: #fcfcfb;
-  --surface-sunken: #f2f2ef;
+  --plane: #eff0f2;
+  --surface: #ffffff;
+  --surface-sunken: #f4f5f7;
 
-  --ink: #0b0b0b;
-  --ink-2: #52514e;
-  --ink-muted: #898781;
+  --ink: #101828;
+  --ink-2: #596274;
+  --ink-muted: #98a1b0;
 
-  --hairline: rgba(11, 11, 11, 0.1);
-  --grid: #e1e0d9;
-  --axis: #c3c2b7;
+  --hairline: rgba(16, 24, 40, 0.08);
+  --grid: #e7e9ee;
+  --axis: #cdd2db;
+
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04),
+    0 8px 24px -12px rgba(16, 24, 40, 0.12);
 
   --series-1: #2a78d6;
   --series-2: #eb6834;
@@ -28,7 +26,7 @@
   --ord-4: #1c5cab;
   --ord-5: #104281;
 
-  --heat-0: #f0efec;
+  --heat-0: #eef0f3;
   --heat-1: #cde2fb;
   --heat-2: #9ec5f4;
   --heat-3: #6da7ec;
@@ -40,22 +38,42 @@
   --status-warning: #fab219;
   --status-serious: #ec835a;
   --status-critical: #d03b3b;
-  --success-text: #006300;
+  --success-text: #067647;
+
+  /* Pill status: latar tipis + teks pekat, label tetap membawa artinya. */
+  --tint-good: #e7f6ec;
+  --tint-good-ink: #067647;
+  --tint-warning: #fdf3d7;
+  --tint-warning-ink: #a35d06;
+  --tint-serious: #fdeadf;
+  --tint-serious-ink: #b93815;
+  --tint-critical: #fde8e8;
+  --tint-critical-ink: #b42318;
+  --tint-neutral: #f0f1f4;
+  --tint-neutral-ink: #596274;
+
+  /* Avatar inisial: dua tint hangat, dipilih deterministik dari nama. */
+  --avatar-1: #d9f2e2;
+  --avatar-1-ink: #076b41;
+  --avatar-2: #fbeec2;
+  --avatar-2-ink: #8a5a06;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --plane: #0d0d0d;
-    --surface: #1a1a19;
-    --surface-sunken: #242422;
+    --plane: #0c0e12;
+    --surface: #16191f;
+    --surface-sunken: #1f242c;
 
-    --ink: #ffffff;
-    --ink-2: #c3c2b7;
-    --ink-muted: #898781;
+    --ink: #f5f6f8;
+    --ink-2: #a8b0be;
+    --ink-muted: #7b8494;
 
     --hairline: rgba(255, 255, 255, 0.1);
-    --grid: #2c2c2a;
-    --axis: #383835;
+    --grid: #262b33;
+    --axis: #3a414c;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4);
 
     --series-1: #3987e5;
     --series-2: #d95926;
@@ -66,7 +84,7 @@
     --ord-4: #2a78d6;
     --ord-5: #184f95;
 
-    --heat-0: #242422;
+    --heat-0: #1f242c;
     --heat-1: #0d366b;
     --heat-2: #104281;
     --heat-3: #184f95;
@@ -74,7 +92,23 @@
     --heat-5: #3987e5;
     --heat-6: #6da7ec;
 
-    --success-text: #0ca30c;
+    --success-text: #4ac97e;
+
+    --tint-good: rgba(12, 163, 12, 0.16);
+    --tint-good-ink: #62d18a;
+    --tint-warning: rgba(250, 178, 25, 0.16);
+    --tint-warning-ink: #f0c05a;
+    --tint-serious: rgba(236, 131, 90, 0.18);
+    --tint-serious-ink: #f0a381;
+    --tint-critical: rgba(208, 59, 59, 0.18);
+    --tint-critical-ink: #f08a8a;
+    --tint-neutral: rgba(255, 255, 255, 0.06);
+    --tint-neutral-ink: #a8b0be;
+
+    --avatar-1: rgba(12, 163, 12, 0.18);
+    --avatar-1-ink: #6ed49a;
+    --avatar-2: rgba(250, 178, 25, 0.18);
+    --avatar-2-ink: #e8c366;
   }
 }
 
@@ -94,13 +128,21 @@
   --color-status-serious: var(--status-serious);
   --color-status-critical: var(--status-critical);
   --color-success-text: var(--success-text);
-  --font-sans: var(--font-geist-sans);
+  --shadow-card: var(--shadow-card);
+  --font-sans: var(--font-metropolis);
   --font-mono: var(--font-geist-mono);
 }
 
 body {
   background: var(--plane);
   color: var(--ink);
+  font-family: var(--font-metropolis), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Angka pada tabel dan tile harus sejajar antar baris. */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
 
 /* Recharts memasang outline fokus pada surface chart; tidak perlu terlihat. */
