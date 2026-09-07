@@ -8,6 +8,7 @@ import {
   firstFilled,
 } from "@/lib/format";
 import EmptyState from "@/components/ui/EmptyState";
+import NoteCell from "./NoteCell";
 import StatusBadge from "./StatusBadge";
 import { Avatar, HeaderCell, StageChip } from "./TableParts";
 
@@ -72,11 +73,14 @@ export default function NeedsActionTable({
                 key={entry.conv_id}
                 className="border-b border-hairline/60 transition-colors last:border-0 hover:bg-surface-sunken/60"
               >
-                <td className="px-3 py-3.5">
+                <td className="max-w-56 px-3 py-3.5">
                   <div className="flex items-center gap-3">
                     <Avatar name={contact} />
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-ink">
+                      <p
+                        title={brand}
+                        className="line-clamp-1 text-sm font-semibold break-words text-ink"
+                      >
                         {brand}
                       </p>
                       <p className="truncate text-xs text-ink-muted">
@@ -103,10 +107,8 @@ export default function NeedsActionTable({
                   </p>
                 </td>
                 <td className="max-w-80 px-3 py-3.5">
-                  <p className="line-clamp-3 text-sm text-ink-2">
-                    {entry.note ?? "Belum ada catatan"}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs text-ink-muted">
+                  <NoteCell note={entry.note} />
+                  <p className="mt-1 truncate text-xs text-ink-muted">
                     {entry.last_message_preview ||
                       `(${entry.last_message_type})`}{" "}
                     · {formatDateTime(entry.last_message_at, timezone)}

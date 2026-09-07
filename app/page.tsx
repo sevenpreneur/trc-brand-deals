@@ -251,10 +251,11 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
           description="Pesan masuk per jam × hari dalam minggu"
           footnote="Menentukan apakah butuh orang kedua atau cukup menggeser jam kerja — response time lambat pada jam padat berarti overload, bukan kelalaian."
         >
-          {heatmap && heatmap.total_message_count > 0 ? (
+          {heatmap && heatmap.total_inbound_message_count > 0 ? (
             <InboundHeatmapChart
               data={heatmap.list}
-              totalMessages={heatmap.total_message_count}
+              totalInbound={heatmap.total_inbound_message_count}
+              totalOutbound={heatmap.total_outbound_message_count}
             />
           ) : (
             <EmptyState message="Belum ada pesan masuk pada rentang ini." />

@@ -33,7 +33,8 @@ const GAP = 2;
 interface Cell {
   hour: number;
   day: number;
-  messages: number;
+  inbound: number;
+  outbound: number;
   conversations: number;
 }
 
@@ -65,7 +66,8 @@ function HeatTooltip({ active, payload }: HeatTooltipProps) {
   const hour = String(cell.hour).padStart(2, "0");
   return (
     <TooltipShell title={`${DAY_LABEL[cell.day]} · ${hour}.00–${hour}.59`}>
-      <TooltipRow label="Pesan masuk" value={formatNumber(cell.messages)} />
+      <TooltipRow label="Pesan masuk" value={formatNumber(cell.inbound)} />
+      <TooltipRow label="Pesan keluar" value={formatNumber(cell.outbound)} />
       <TooltipRow label="Percakapan" value={formatNumber(cell.conversations)} />
     </TooltipShell>
   );
@@ -73,10 +75,12 @@ function HeatTooltip({ active, payload }: HeatTooltipProps) {
 
 export default function InboundHeatmapChart({
   data,
-  totalMessages,
+  totalInbound,
+  totalOutbound,
 }: {
   data: InboundHeatmapEntry[];
-  totalMessages: number;
+  totalInbound: number;
+  totalOutbound: number;
 }) {
   const { ref, width } = useContainerWidth();
 
@@ -92,13 +96,14 @@ export default function InboundHeatmapChart({
       cells.push({
         hour,
         day,
-        messages: entry?.message_count ?? 0,
+        inbound: entry?.inbound_message_count ?? 0,
+        outbound: entry?.outbound_message_count ?? 0,
         conversations: entry?.conversation_count ?? 0,
       });
     }
   }
 
-  const max = cells.reduce((peak, cell) => Math.max(peak, cell.messages), 0);
+  const max = cells.reduce((peak, cell) => Math.max(peak, cell.inbound), 0);
   const plotWidth = Math.max(0, width - MARGIN.left - MARGIN.right);
   const cellWidth = plotWidth / HOURS;
   const cellHeight = (CHART_HEIGHT - MARGIN.top - MARGIN.bottom) / DAYS;
@@ -121,7 +126,7 @@ export default function InboundHeatmapChart({
         width={rectWidth}
         height={rectHeight}
         rx={3}
-        fill={colorFor(payload.messages)}
+        fill={colorFor(payload.inbound)}
       />
     );
   }
@@ -188,8 +193,10 @@ export default function InboundHeatmapChart({
             {formatNumber(max)} pesan
           </span>
         </div>
+        {/* Outbound tidak mewarnai sel, jadi totalnya dibaca sebagai konteks beban balas. */}
         <span className="text-xs text-ink-muted">
-          Total {formatNumber(totalMessages)} pesan masuk
+          Total {formatNumber(totalInbound)} pesan masuk ·{" "}
+          {formatNumber(totalOutbound)} pesan keluar
         </span>
       </div>
     </div>

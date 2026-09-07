@@ -72,7 +72,9 @@ export type InboundHeatmapEntry = {
   day_of_week: number;
   /** 0–23 pada timezone yang diminta. */
   hour: number;
-  message_count: number;
+  inbound_message_count: number;
+  outbound_message_count: number;
+  /** Percakapan berbeda yang mengirim pesan masuk pada bucket ini. */
   conversation_count: number;
 };
 
@@ -80,7 +82,9 @@ export type InboundHeatmap = {
   start_date: string;
   end_date: string;
   timezone: string;
-  total_message_count: number;
+  total_inbound_message_count: number;
+  total_outbound_message_count: number;
+  /** Bucket tanpa pesan masuk maupun keluar tidak dikirim — klien mengisi nol. */
   list: InboundHeatmapEntry[];
 };
 

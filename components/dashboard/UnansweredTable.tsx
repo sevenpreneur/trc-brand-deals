@@ -9,6 +9,7 @@ import {
   LEAD_STATUS_LABEL,
 } from "@/lib/format";
 import EmptyState from "@/components/ui/EmptyState";
+import NoteCell from "./NoteCell";
 import StatusBadge from "./StatusBadge";
 import { HeaderCell } from "./TableParts";
 
@@ -42,12 +43,12 @@ export default function UnansweredTable({
         <tbody>
           {entries.map((entry) => (
             <tr key={entry.conv_id} className="border-b border-hairline/60">
-              <td className="px-1 py-3">
-                <p className="text-sm font-semibold text-ink">
+              <td className="max-w-56 px-1 py-3">
+                <p className="line-clamp-1 text-sm font-semibold break-words text-ink">
                   {firstFilled(entry.brand_name, entry.full_name) ??
                     "Brand belum diisi"}
                 </p>
-                <p className="text-xs text-ink-muted">
+                <p className="truncate text-xs text-ink-muted">
                   {firstFilled(entry.full_name) ?? "Kontak tanpa nama"} ·{" "}
                   <span className="tabular-nums">
                     {formatPhone(entry.phone_number)}
@@ -72,9 +73,7 @@ export default function UnansweredTable({
                 </p>
               </td>
               <td className="max-w-72 px-1 py-3">
-                <p className="truncate text-sm text-ink-2">
-                  {entry.note ?? "Belum ada catatan"}
-                </p>
+                <NoteCell note={entry.note} />
               </td>
               <td className="px-1 py-3">
                 <StatusBadge
