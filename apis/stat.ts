@@ -64,6 +64,8 @@ export type ResponseTime = {
   end_date: string;
   timezone: string;
   target_seconds: number;
+  /** Saat true, Sabtu dan Minggu dibuang dari seri, bukan dinolkan. */
+  exclude_weekend: boolean;
   list: ResponseTimeEntry[];
 };
 
@@ -205,11 +207,12 @@ export async function getChatsVolume(
 }
 
 export async function getResponseTime(
-  params: RangeParams & { targetSeconds?: number }
+  params: RangeParams & { targetSeconds?: number; excludeWeekend?: boolean }
 ): Promise<ResponseTime | null> {
   return getStat<ResponseTime>("/api/v1/stats/response-time", {
     ...rangeBody(params),
     target_seconds: params.targetSeconds ?? DEFAULT_TARGET_SECONDS,
+    exclude_weekend: params.excludeWeekend ?? false,
   });
 }
 

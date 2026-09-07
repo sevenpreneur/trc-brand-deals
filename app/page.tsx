@@ -25,6 +25,7 @@ import LeadStatusChart from "@/components/charts/LeadStatusChart";
 import InboundHeatmapChart from "@/components/charts/InboundHeatmapChart";
 import FilterBar from "@/components/dashboard/FilterBar";
 import NeedsActionTable from "@/components/dashboard/NeedsActionTable";
+import WeekendToggle from "@/components/dashboard/WeekendToggle";
 import StatTile from "@/components/dashboard/StatTile";
 import Card from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
@@ -57,6 +58,11 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
     86_400
   );
 
+  const rawWeekend = Array.isArray(params.weekend)
+    ? params.weekend[0]
+    : params.weekend;
+  const excludeWeekend = rawWeekend === "off";
+
   const { startDate, endDate, days } = resolveRange(range, DEFAULT_TIMEZONE);
   const rangeParams = { startDate, endDate, timezone: DEFAULT_TIMEZONE };
 
@@ -70,7 +76,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
   ] = await Promise.all([
     getSummary({ ...rangeParams, targetSeconds }),
     getChatsVolume(rangeParams),
-    getResponseTime({ ...rangeParams, targetSeconds }),
+    getResponseTime({ ...rangeParams, targetSeconds, excludeWeekend }),
     getInboundHeatmap(rangeParams),
     getLeadStatus(rangeParams),
     getNeedsAction({ pageSize: 10 }),
@@ -218,21 +224,28 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
           title="First response time — harian"
           description="Median dan p90 waktu balas turn inbound pertama"
           aside={
-            <LegendKey
-              items={[
-                ...RESPONSE_SERIES.map((series) => ({
-                  label: series.label,
-                  color: series.color,
-                })),
-                {
-                  label: `Target ${formatDurationTick(targetSeconds)}`,
-                  color: "var(--ink-muted)",
-                  variant: "dash" as const,
-                },
-              ]}
-            />
+            <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2">
+              <WeekendToggle excluded={excludeWeekend} />
+              <LegendKey
+                items={[
+                  ...RESPONSE_SERIES.map((series) => ({
+                    label: series.label,
+                    color: series.color,
+                  })),
+                  {
+                    label: `Target ${formatDurationTick(targetSeconds)}`,
+                    color: "var(--ink-muted)",
+                    variant: "dash" as const,
+                  },
+                ]}
+              />
+            </div>
           }
-          footnote="Median dipakai karena rata-rata tertutup outlier; p90 menunjukkan kasus terburuk. Hari tanpa turn yang dibalas sengaja dibiarkan putus, bukan disambung."
+          footnote={`Median dipakai karena rata-rata tertutup outlier; p90 menunjukkan kasus terburuk. Hari tanpa turn yang dibalas sengaja dibiarkan putus, bukan disambung.${
+            excludeWeekend
+              ? " Sabtu dan Minggu sedang dibuang dari seri, jadi angkanya membaca jam kerja saja."
+              : ""
+          }`}
         >
           {responseTime && responseTime.list.length > 0 ? (
             <ResponseTimeChart
@@ -240,7 +253,13 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
               targetSeconds={responseTime.target_seconds ?? targetSeconds}
             />
           ) : (
-            <EmptyState message="Belum ada turn inbound pada rentang ini." />
+            <EmptyState
+              message={
+                excludeWeekend
+                  ? "Belum ada turn inbound pada hari kerja di rentang ini."
+                  : "Belum ada turn inbound pada rentang ini."
+              }
+            />
           )}
         </Card>
       </section>
