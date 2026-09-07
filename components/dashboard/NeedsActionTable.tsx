@@ -36,14 +36,14 @@ function statusFor(entry: NeedsActionEntry) {
 export default function NeedsActionTable({
   entries,
   timezone,
+  emptyMessage = "Belum ada percakapan yang brand-nya sudah diisi.",
 }: {
   entries: NeedsActionEntry[];
   timezone: string;
+  emptyMessage?: string;
 }) {
   if (entries.length === 0) {
-    return (
-      <EmptyState message="Belum ada percakapan yang brand-nya sudah diisi." />
-    );
+    return <EmptyState message={emptyMessage} />;
   }
 
   return (
