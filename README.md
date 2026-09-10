@@ -4,7 +4,12 @@ Dashboard evaluasi 360° workflow inbound WhatsApp brand deals TRC. Semua angka
 di-generate otomatis dari data percakapan lewat endpoint `stats` Pureva API —
 tidak ada laporan manual yang ditulis orang yang dievaluasi.
 
-Halaman tunggal di [`app/page.tsx`](app/page.tsx) (App Router, server component).
+Dua halaman, dipilih lewat sidebar:
+
+| Halaman | Isi |
+| --- | --- |
+| **Dashboard** ([`app/page.tsx`](app/page.tsx)) | Enam blok visualisasi + filter |
+| **Knowledge** ([`app/knowledge/`](app/knowledge/)) | Chatbot internal untuk menanyakan kondisi brand deal |
 
 ## Setup
 
@@ -40,15 +45,56 @@ npx tsc --noEmit -p .   # tidak ada script typecheck terpisah
 apis/
   api.ts     callApi: fetch + Bearer + envelope { success, code, status, message, data }
   stat.ts    wrapper tiap endpoint /api/v1/stats/* + tipe responsnya
+  knowledge.ts CRUD thread Knowledge + pembuka stream jawaban
 lib/
-  format.ts        durasi, tanggal, angka, preset rentang, tick sumbu
-  chart-series.ts  definisi seri & warna (dipakai chart + legend di server)
-  types.ts         StatusName, isSuccessStatus, metapaging
+  format.ts          durasi, tanggal, angka, preset rentang, tick sumbu
+  chart-series.ts    definisi seri & warna (dipakai chart + legend di server)
+  types.ts           StatusName, isSuccessStatus, metapaging
+  knowledge-stream.ts parser SSE + streamChat() untuk sisi klien
+app/
+  page.tsx                 dashboard
+  knowledge/               halaman chat + server action rename/hapus
+  api/knowledge/chat/      route handler yang mem-proxy stream dari backend
 components/
   charts/      client component recharts
   dashboard/   stat tile, filter, tabel
+  knowledge/   thread chat, composer, daftar thread, renderer markdown
+  layout/      sidebar
   ui/          card, legend, empty state
 ```
+
+## Knowledge
+
+Tanya-jawab internal tentang kondisi brand deal, di atas data yang sama dengan
+dashboard. Halaman `/knowledge` untuk thread baru, `/knowledge/<conv_id>` untuk
+thread yang sudah ada.
+
+```
+Browser  ──POST /api/knowledge/chat──▶  Route handler  ──▶  Pureva API (SSE)
+   ▲                                    (server, pegang                │
+   └──────────── token demi token ───────  CLIENT_SECRET) ◀────────────┘
+```
+
+Route handler di [`app/api/knowledge/chat/route.ts`](app/api/knowledge/chat/route.ts)
+ada supaya `CLIENT_SECRET` dan `TENANT_ID` tetap di server — browser tidak pernah
+bicara langsung ke Pureva API, sama seperti jalur data dashboard.
+
+Jawabannya di-stream sebagai Server-Sent Events. Menutup tab tidak membatalkan
+jawabannya: backend tetap menyelesaikan dan menyimpannya, jadi thread-nya utuh waktu
+dibuka lagi.
+
+Markdown jawaban dirender jadi elemen React lewat
+[`components/knowledge/Markdown.tsx`](components/knowledge/Markdown.tsx), bukan lewat
+`dangerouslySetInnerHTML`. Jawaban agent mengutip isi pesan WhatsApp dan siapa pun bisa
+mengirim pesan ke nomor bisnisnya, jadi HTML di dalam teks tidak boleh punya jalan untuk
+dieksekusi.
+
+### Prasyarat
+
+Backend butuh tabel `kb_conversations` dan `kb_chats` (`docs/db/knowledge.sql` di repo
+`pureva-api`) plus `OPENAI_API_KEY`. Selama itu belum ada, halaman Knowledge tetap render
+dan menampilkan pesan errornya — dashboard tidak terpengaruh.
+
 
 ## Isi dashboard
 
