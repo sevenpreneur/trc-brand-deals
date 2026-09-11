@@ -1,7 +1,13 @@
 import "server-only";
 
 import { callApi } from "./api";
-import { isSuccessStatus, type LeadStatus, type Metapaging } from "@/lib/types";
+import { DEFAULT_RESPONSE_MODE } from "@/lib/format";
+import {
+  isSuccessStatus,
+  type LeadStatus,
+  type Metapaging,
+  type ResponseMode,
+} from "@/lib/types";
 
 export const DEFAULT_TIMEZONE = "Asia/Jakarta";
 
@@ -19,6 +25,8 @@ export type StatSummary = {
   end_date: string;
   timezone: string;
   target_seconds: number;
+  /** Definisi yang dipakai seluruh angka response di payload ini. */
+  response_mode: ResponseMode;
   active_conversation_count: number;
   new_conversation_count: number;
   inbound_per_day: number;
@@ -64,6 +72,7 @@ export type ResponseTime = {
   end_date: string;
   timezone: string;
   target_seconds: number;
+  response_mode: ResponseMode;
   /** Saat true, Sabtu dan Minggu dibuang dari seri, bukan dinolkan. */
   exclude_weekend: boolean;
   list: ResponseTimeEntry[];
@@ -182,12 +191,13 @@ async function getStat<T>(path: string, body: unknown): Promise<T | null> {
  * diteruskan — kalau tenant/secret salah, halaman harus bisa bilang kenapa.
  */
 export async function getSummary(
-  params: RangeParams & { targetSeconds?: number }
+  params: RangeParams & { targetSeconds?: number; responseMode?: ResponseMode }
 ): Promise<{ data: StatSummary | null; error: string | null }> {
   const result = await callApi<StatSummary>("/api/v1/stats/summary", {
     body: {
       ...rangeBody(params),
       target_seconds: params.targetSeconds ?? DEFAULT_TARGET_SECONDS,
+      response_mode: params.responseMode ?? DEFAULT_RESPONSE_MODE,
     },
   });
 
@@ -207,11 +217,16 @@ export async function getChatsVolume(
 }
 
 export async function getResponseTime(
-  params: RangeParams & { targetSeconds?: number; excludeWeekend?: boolean }
+  params: RangeParams & {
+    targetSeconds?: number;
+    excludeWeekend?: boolean;
+    responseMode?: ResponseMode;
+  }
 ): Promise<ResponseTime | null> {
   return getStat<ResponseTime>("/api/v1/stats/response-time", {
     ...rangeBody(params),
     target_seconds: params.targetSeconds ?? DEFAULT_TARGET_SECONDS,
+    response_mode: params.responseMode ?? DEFAULT_RESPONSE_MODE,
     exclude_weekend: params.excludeWeekend ?? false,
   });
 }

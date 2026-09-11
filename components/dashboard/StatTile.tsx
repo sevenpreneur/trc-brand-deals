@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import InfoTip from "@/components/ui/InfoTip";
 
 type Tone = "neutral" | "good" | "warning" | "critical";
 
@@ -18,6 +19,8 @@ interface StatTileProps {
   detailTone?: Tone;
   /** Ditandai bintang di dokumen evaluasi sebagai metric utama. */
   starred?: boolean;
+  /** Definisi metric-nya: apa yang dihitung dan dari mana. */
+  info?: string;
 }
 
 export default function StatTile({
@@ -26,6 +29,7 @@ export default function StatTile({
   detail,
   detailTone = "neutral",
   starred = false,
+  info,
 }: StatTileProps) {
   const tone = TONE[detailTone];
 
@@ -42,6 +46,7 @@ export default function StatTile({
           </span>
         )}
         {label}
+        {info && <InfoTip text={info} />}
       </p>
       <p className="mt-2 text-[28px] leading-none font-bold tracking-tight text-ink tabular-nums">
         {value}

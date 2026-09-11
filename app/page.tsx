@@ -10,13 +10,16 @@ import {
 } from "@/apis/stat";
 import {
   DEFAULT_RANGE,
+  DEFAULT_RESPONSE_MODE,
   formatDuration,
   formatDurationTick,
   formatNumber,
   formatPercent,
   formatRupiahCompact,
   isRangeValue,
+  isResponseMode,
   resolveRange,
+  resolveResponseMode,
   type RangeValue,
 } from "@/lib/format";
 import VolumeChart from "@/components/charts/VolumeChart";
@@ -63,10 +66,16 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
     86_400
   );
 
+  const rawMode = Array.isArray(params.mode) ? params.mode[0] : params.mode;
+  const responseMode = isResponseMode(rawMode) ? rawMode : DEFAULT_RESPONSE_MODE;
+  const mode = resolveResponseMode(responseMode);
+
   const rawWeekend = Array.isArray(params.weekend)
     ? params.weekend[0]
     : params.weekend;
-  const excludeWeekend = rawWeekend === "off";
+  // Mode jam kerja sudah menolak jam di luar Senin–Jumat, jadi toggle-nya dimatikan di situ.
+  const excludeWeekend =
+    responseMode !== "all_working" && rawWeekend === "off";
 
   const needsActionPage = readNumberParam(
     params[NEEDS_ACTION_PAGE_PARAM],
@@ -86,9 +95,14 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
     leadStatus,
     needsAction,
   ] = await Promise.all([
-    getSummary({ ...rangeParams, targetSeconds }),
+    getSummary({ ...rangeParams, targetSeconds, responseMode }),
     getChatsVolume(rangeParams),
-    getResponseTime({ ...rangeParams, targetSeconds, excludeWeekend }),
+    getResponseTime({
+      ...rangeParams,
+      targetSeconds,
+      excludeWeekend,
+      responseMode,
+    }),
     getInboundHeatmap(rangeParams),
     getLeadStatus(rangeParams),
     getNeedsAction({
@@ -113,7 +127,11 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
       </header>
 
       <div className="mt-6">
-        <FilterBar range={range} targetSeconds={targetSeconds} />
+        <FilterBar
+          range={range}
+          targetSeconds={targetSeconds}
+          responseMode={responseMode}
+        />
       </div>
 
       {summaryResult.error && (
@@ -138,16 +156,18 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
       <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatTile
           label="Inbound / hari"
+          info="Rata-rata jumlah percakapan yang mengirim pesan masuk setiap hari. Ini bukan jumlah pesan, karena satu percakapan tetap dihitung satu kali meski mengirim banyak pesan."
           value={summary ? formatNumber(summary.inbound_per_day, 2) : "—"}
           detail={
             summary
-              ? `${formatNumber(summary.inbound_turn_count)} turn inbound dalam ${days} hari`
+              ? `${formatNumber(summary.inbound_turn_count)} ${mode.turn} dalam ${days} hari`
               : undefined
           }
         />
         <StatTile
           starred
-          label="First response (median)"
+          label={mode.tile}
+          info={`Waktu tengah untuk membalas ${mode.turn}. Artinya, separuh balasan selesai lebih cepat dari angka ini dan separuh lainnya lebih lama. P90 berarti 90% balasan selesai dalam waktu tersebut, sedangkan 10% sisanya lebih lama. Yang diukur ${mode.scope}.`}
           value={summary ? formatDuration(summary.median_response_seconds) : "—"}
           detail={
             summary
@@ -163,7 +183,8 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
         />
         <StatTile
           starred
-          label="Tanpa balasan sama sekali"
+          label={mode.unanswered}
+          info={`Jumlah ${mode.turn} yang belum mendapat balasan sama sekali. Angka ini tidak dibatasi target waktu, jadi pesan yang sudah lama masuk tetap dihitung selama belum dibalas.`}
           value={summary ? formatNumber(summary.unanswered_turn_count) : "—"}
           detail={
             summary
@@ -176,6 +197,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
         />
         <StatTile
           label="Dibalas dalam target"
+          info={`Persentase ${mode.turn} yang dibalas dalam batas waktu pada filter. Perhitungan ini hanya memakai pesan yang sudah dibalas, sedangkan pesan yang belum dibalas dihitung di kartu sebelahnya.`}
           value={summary ? formatPercent(summary.within_target_percent) : "—"}
           detail={
             summary
@@ -192,6 +214,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
         <Card
           className="xl:col-span-8"
           title="Volume percakapan per hari"
+          info="Jumlah percakapan yang menerima pesan masuk setiap hari. Percakapan baru dibuat pada hari itu, sedangkan lanjutan adalah percakapan lama yang kembali aktif."
           description="Percakapan yang menerima pesan masuk, dipisah baru vs lanjutan"
           aside={
             <LegendKey
@@ -213,6 +236,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
         <Card
           className="xl:col-span-4"
           title="Funnel lead status"
+          info="Menunjukkan jumlah percakapan di setiap tahap, dari baru sampai selesai. Nilai tertahan hanya menjumlahkan nilai deal yang sudah diisi, bukan perkiraan nilai semua percakapan."
           description="Percakapan yang dibuat pada rentang ini, per stage"
           aside={
             leadStatus ? (
@@ -236,11 +260,14 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
 
       <section className="mt-4">
         <Card
-          title="First response time — harian"
-          description="Median dan p90 waktu balas turn inbound pertama"
+          title="Response time — harian"
+          info={`Menunjukkan waktu tengah dan P90 balasan untuk setiap hari. P90 berarti 90% balasan selesai dalam waktu tersebut dan 10% sisanya lebih lama. Yang diukur ${mode.scope}.`}
+          description={`Median dan p90 waktu balas — ${mode.scope}`}
           aside={
             <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2">
-              <WeekendToggle excluded={excludeWeekend} />
+              {responseMode !== "all_working" && (
+                <WeekendToggle excluded={excludeWeekend} />
+              )}
               <LegendKey
                 items={[
                   ...RESPONSE_SERIES.map((series) => ({
@@ -257,6 +284,10 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
             </div>
           }
           footnote={`Median dipakai karena rata-rata tertutup outlier; p90 menunjukkan kasus terburuk. Hari tanpa turn yang dibalas sengaja dibiarkan putus, bukan disambung.${
+            responseMode === "all_working"
+              ? " Jeda di luar Senin–Jumat 09.00–18.00 tidak ikut dihitung: turn yang masuk Sabtu diukur dari Senin pagi. Libur nasional belum dikecualikan, jadi tanggal merah masih terbaca sebagai hari kerja."
+              : ""
+          }${
             excludeWeekend
               ? " Sabtu dan Minggu sedang dibuang dari seri, jadi angkanya membaca jam kerja saja."
               : ""
@@ -282,6 +313,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
       <section className="mt-4">
         <Card
           title="Kapan inbound masuk"
+          info="Menunjukkan kapan pesan masuk paling sering berdasarkan hari dan jam. Semua Senin digabung di hari Senin, dan yang dihitung adalah jumlah pesan, bukan jumlah percakapan."
           description="Pesan masuk per jam × hari dalam minggu"
           footnote="Menentukan apakah butuh orang kedua atau cukup menggeser jam kerja — response time lambat pada jam padat berarti overload, bukan kelalaian."
         >
@@ -300,6 +332,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
       <section className="mt-4 grid gap-4">
         <Card
           title="Brand deal yang sedang berjalan"
+          info="Berisi semua percakapan yang sudah memiliki nama brand, termasuk yang lebih lama dari filter tanggal. Daftar dimulai dari percakapan yang paling lama tidak aktif dan menunjukkan siapa yang sedang ditunggu."
           description="Semua percakapan yang brand-nya sudah diisi, diurutkan dari yang paling lama diam"
           aside={
             needsAction ? (

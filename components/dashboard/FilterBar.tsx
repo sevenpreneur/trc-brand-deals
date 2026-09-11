@@ -2,7 +2,8 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
-import { RANGE_PRESETS, type RangeValue } from "@/lib/format";
+import { RANGE_PRESETS, RESPONSE_MODES, type RangeValue } from "@/lib/format";
+import type { ResponseMode } from "@/lib/types";
 
 const TARGET_OPTIONS = [
   { value: 300, label: "5 menit" },
@@ -14,9 +15,14 @@ const TARGET_OPTIONS = [
 interface FilterBarProps {
   range: RangeValue;
   targetSeconds: number;
+  responseMode: ResponseMode;
 }
 
-export default function FilterBar({ range, targetSeconds }: FilterBarProps) {
+export default function FilterBar({
+  range,
+  targetSeconds,
+  responseMode,
+}: FilterBarProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -56,6 +62,21 @@ export default function FilterBar({ range, targetSeconds }: FilterBarProps) {
           </button>
         ))}
       </div>
+
+      <label className="flex items-center gap-2 text-xs font-medium text-ink-2">
+        Metrik response
+        <select
+          value={responseMode}
+          onChange={(event) => setParam("mode", event.target.value)}
+          className="rounded-lg border border-hairline bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink shadow-card"
+        >
+          {RESPONSE_MODES.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <label className="flex items-center gap-2 text-xs font-medium text-ink-2">
         Target balas

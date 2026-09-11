@@ -1,8 +1,11 @@
 import type { ReactNode } from "react";
+import InfoTip from "@/components/ui/InfoTip";
 
 interface CardProps {
   title: string;
   description?: string;
+  /** Definisi isi kartunya: apa yang dihitung dan dari mana. */
+  info?: string;
   /** Legend / kontrol kecil di kanan header. */
   aside?: ReactNode;
   footnote?: string;
@@ -13,6 +16,7 @@ interface CardProps {
 export default function Card({
   title,
   description,
+  info,
   aside,
   footnote,
   className = "",
@@ -24,8 +28,9 @@ export default function Card({
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-[15px] font-bold tracking-tight text-ink">
+          <h2 className="flex items-center gap-1.5 text-[15px] font-bold tracking-tight text-ink">
             {title}
+            {info && <InfoTip text={info} />}
           </h2>
           {description && (
             <p className="mt-1 text-[13px] text-ink-2">{description}</p>

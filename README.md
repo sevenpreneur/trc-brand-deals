@@ -100,20 +100,37 @@ dan menampilkan pesan errornya — dashboard tidak terpengaruh.
 
 | Blok | Endpoint |
 | --- | --- |
-| 4 stat tile (inbound/hari, first response median, tanpa balasan, % dalam target) | `stats/summary` |
+| 4 stat tile (inbound/hari, response median, tanpa balasan, % dalam target) | `stats/summary` |
 | Volume percakapan per hari (stacked bar) | `stats/chats-volume` |
 | Distribusi lead status (donut) | `stats/lead-status` |
-| First response time harian, median + p90 + garis target (line) | `stats/response-time` |
+| Response time harian, median + p90 + garis target (line) | `stats/response-time` |
 | Kapan inbound masuk, jam × hari (heatmap) | `stats/inbound-heatmap` |
 | Brand deal yang sedang berjalan (tabel) | `stats/needs-action/list` |
 
 Semua chart memakai [Recharts](https://recharts.org). Heatmap dibangun dari
 `ScatterChart` dengan custom shape, bukan library terpisah.
 
-Filter (rentang tanggal, target balas) disimpan di query string
-(`?range=30d&target=900`), jadi state-nya bisa di-share lewat URL dan data
-selalu di-fetch ulang di server. Tabel brand deal sengaja lepas dari filter itu
-— `stats/needs-action/list` mengembalikan semua percakapan yang `brand_name`-nya
+Filter (rentang tanggal, metrik response, target balas) disimpan di query
+string (`?range=30d&mode=all_flat&target=900`), jadi state-nya bisa di-share
+lewat URL dan data selalu di-fetch ulang di server.
+
+`mode` memilih definisi yang dipakai **semua** angka response di layar —
+stat tile, chart harian, dan persentase dalam target — supaya satu halaman
+tidak pernah mencampur dua definisi:
+
+| `mode` | Turn yang diukur | Jeda dihitung |
+| --- | --- | --- |
+| `first` | turn pembuka tiap percakapan | apa adanya |
+| `all_working` | semua turn | hanya Senin–Jumat 09.00–18.00 |
+| `all_flat` (default) | semua turn | apa adanya |
+
+Pada `all_working`, turn yang masuk Sabtu 10.00 dan dibalas Senin 09.05 terbaca
+5 menit, bukan dua hari. Libur nasional belum dikecualikan — belum ada sumber
+datanya, jadi tanggal merah masih terhitung hari kerja. Toggle "Kecualikan
+weekend" disembunyikan di mode ini karena jeda akhir pekan memang sudah nol.
+
+Tabel brand deal sengaja lepas dari semua filter itu —
+`stats/needs-action/list` mengembalikan semua percakapan yang `brand_name`-nya
 sudah terisi, bukan potongan periode, supaya deal lama tetap terbaca.
 
 ### Belum bisa ditampilkan

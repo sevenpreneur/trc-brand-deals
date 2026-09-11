@@ -15,6 +15,9 @@ export function isSuccessStatus(status?: StatusName) {
   return status !== undefined && SUCCESS_STATUSES.includes(status);
 }
 
+/** Turn mana yang diukur dan apakah jeda di luar jam kerja ikut dihitung. */
+export type ResponseMode = "first" | "all_working" | "all_flat";
+
 export type LeadStatus =
   | "cold"
   | "qualified"

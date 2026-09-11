@@ -1,3 +1,5 @@
+import type { ResponseMode } from "@/lib/types";
+
 export const TIMEZONE = "Asia/Jakarta";
 
 /* ── Tanggal ─────────────────────────────────────────────────────────── */
@@ -206,6 +208,60 @@ export function resolveRange(
     days: preset.days,
     label: preset.label,
   };
+}
+
+/* ── Mode response time (filter) ─────────────────────────────────────── */
+
+/**
+ * Satu mode menentukan seluruh angka response di satu layar: turn mana yang
+ * diukur, dan apakah jeda di luar jam kerja ikut dihitung. Labelnya ditaruh di
+ * sini supaya tile, judul kartu, dan footnote tidak pernah saling bertentangan.
+ */
+export const RESPONSE_MODES: readonly {
+  value: ResponseMode;
+  label: string;
+  tile: string;
+  unanswered: string;
+  turn: string;
+  scope: string;
+}[] = [
+  {
+    value: "first",
+    label: "First response",
+    tile: "First response (median)",
+    unanswered: "Pesan pembuka tanpa balasan",
+    turn: "turn pembuka",
+    scope: "turn pembuka tiap percakapan, jeda apa adanya",
+  },
+  {
+    value: "all_working",
+    label: "All response (jam kerja)",
+    tile: "All response jam kerja (median)",
+    unanswered: "Tanpa balasan sama sekali",
+    turn: "turn inbound",
+    scope: "semua turn, jeda dihitung hanya pada Senin–Jumat 09.00–18.00",
+  },
+  {
+    value: "all_flat",
+    label: "All response (flat)",
+    tile: "All response flat (median)",
+    unanswered: "Tanpa balasan sama sekali",
+    turn: "turn inbound",
+    scope: "semua turn, jeda apa adanya",
+  },
+];
+
+/** Menyamai default API: angka yang selama ini tampil di dashboard tidak berubah. */
+export const DEFAULT_RESPONSE_MODE: ResponseMode = "all_flat";
+
+export function isResponseMode(value: string | undefined): value is ResponseMode {
+  return RESPONSE_MODES.some((mode) => mode.value === value);
+}
+
+export function resolveResponseMode(value: ResponseMode) {
+  return (
+    RESPONSE_MODES.find((mode) => mode.value === value) ?? RESPONSE_MODES[2]
+  );
 }
 
 /* ── Label domain ────────────────────────────────────────────────────── */

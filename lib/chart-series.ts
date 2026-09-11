@@ -10,7 +10,11 @@ export const VOLUME_SERIES = [
 
 export const RESPONSE_SERIES = [
   { key: "median", label: "Median", color: "var(--series-1)" },
-  { key: "p90", label: "p90 (kasus terburuk)", color: "var(--series-2)" },
+  {
+    key: "p90",
+    label: "P90 (90% balasan selesai sebelum angka ini)",
+    color: "var(--series-2)",
+  },
 ] as const;
 
 /** Stage funnel itu kategori berurutan, jadi warnanya ramp ordinal satu hue. */
