@@ -24,7 +24,7 @@ export default function Card({
 }: CardProps) {
   return (
     <section
-      className={`flex min-w-0 flex-col rounded-2xl border border-hairline bg-surface p-6 shadow-card ${className}`}
+      className={`flex min-w-0 flex-col rounded-lg border border-hairline bg-surface p-6 shadow-card ${className}`}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
