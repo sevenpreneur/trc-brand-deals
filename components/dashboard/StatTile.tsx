@@ -34,7 +34,7 @@ export default function StatTile({
   const tone = TONE[detailTone];
 
   return (
-    <div className="min-w-0 rounded-2xl border border-hairline bg-surface p-5 shadow-card">
+    <div className="min-w-0 rounded-lg border border-hairline bg-surface p-5 shadow-card">
       <p className="flex items-center gap-1.5 text-[13px] font-medium text-ink-2">
         {starred && (
           <span

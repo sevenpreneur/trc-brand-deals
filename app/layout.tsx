@@ -1,24 +1,13 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
-import { Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import Sidebar from "@/components/layout/Sidebar";
 import "./globals.css";
 
-/** Metropolis dipakai untuk seluruh UI — geometric sans, angka rapat dan tegas. */
-const metropolis = localFont({
-  variable: "--font-metropolis",
+/** Inter untuk seluruh UI — menyamai design system Genesis. */
+const inter = Inter({
+  variable: "--font-inter",
   display: "swap",
-  src: [
-    { path: "./fonts/Metropolis-Regular.otf", weight: "400", style: "normal" },
-    { path: "./fonts/Metropolis-Medium.otf", weight: "500", style: "normal" },
-    { path: "./fonts/Metropolis-SemiBold.otf", weight: "600", style: "normal" },
-    { path: "./fonts/Metropolis-Bold.otf", weight: "700", style: "normal" },
-    {
-      path: "./fonts/Metropolis-ExtraBold.otf",
-      weight: "800",
-      style: "normal",
-    },
-  ],
+  subsets: ["latin"],
 });
 
 const geistMono = Geist_Mono({
@@ -36,7 +25,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="id"
-      className={`${metropolis.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full">
         <Sidebar />
