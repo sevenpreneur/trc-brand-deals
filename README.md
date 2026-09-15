@@ -133,6 +133,13 @@ Tabel brand deal sengaja lepas dari semua filter itu —
 `stats/needs-action/list` mengembalikan semua percakapan yang `brand_name`-nya
 sudah terisi, bukan potongan periode, supaya deal lama tetap terbaca.
 
+Endpoint itu hanya paginasi, jadi seluruh baris ditarik sekali di server
+(`getAllNeedsAction`, dengan cap 5.000 baris) lalu **search, filter stage,
+filter status (giliran kita vs menunggu brand), sort kolom, dan export CSV**
+dikerjakan di client atas seluruh daftar — bukan per halaman. Paginasi tabel
+pun berpindah ke sisi klien; deep link `?deal_page=` yang lama tidak dipakai
+lagi.
+
 ### Belum bisa ditampilkan
 
 Empat elemen di dokumen evaluasi belum punya sumber data di schema saat ini dan

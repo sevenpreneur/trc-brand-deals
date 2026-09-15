@@ -273,3 +273,42 @@ export async function getNeedsAction(
     page_size: params.pageSize ?? 20,
   });
 }
+
+/** Batas aman: search/filter/sort di client tidak boleh bikin server ditembak tanpa henti. */
+const NEEDS_ACTION_MAX_ROWS = 5000;
+const NEEDS_ACTION_FETCH_PAGE_SIZE = 100;
+
+/**
+ * Semua brand deal sekaligus untuk tabel yang search, filter, dan sort-nya
+ * dikerjakan di client. Endpoint hanya paginasi, jadi halaman pertama diambil
+ * dulu untuk tahu total, sisanya ditarik paralel sampai cap.
+ */
+export async function getAllNeedsAction(): Promise<{
+  list: NeedsActionEntry[];
+  total: number;
+} | null> {
+  const first = await getNeedsAction({
+    page: 1,
+    pageSize: NEEDS_ACTION_FETCH_PAGE_SIZE,
+  });
+  if (!first) return null;
+
+  const rows = [...first.list];
+  const maxPage = Math.min(
+    first.metapaging.total_page,
+    Math.ceil(NEEDS_ACTION_MAX_ROWS / NEEDS_ACTION_FETCH_PAGE_SIZE)
+  );
+
+  if (maxPage > 1) {
+    const rest = await Promise.all(
+      Array.from({ length: maxPage - 1 }, (_, index) =>
+        getNeedsAction({ page: index + 2, pageSize: NEEDS_ACTION_FETCH_PAGE_SIZE })
+      )
+    );
+    for (const chunk of rest) {
+      if (chunk) rows.push(...chunk.list);
+    }
+  }
+
+  return { list: rows, total: first.metapaging.total_data };
+}

@@ -1,10 +1,10 @@
 import {
   DEFAULT_TARGET_SECONDS,
   DEFAULT_TIMEZONE,
+  getAllNeedsAction,
   getChatsVolume,
   getInboundHeatmap,
   getLeadStatus,
-  getNeedsAction,
   getResponseTime,
   getSummary,
 } from "@/apis/stat";
@@ -27,8 +27,7 @@ import ResponseTimeChart from "@/components/charts/ResponseTimeChart";
 import LeadStatusChart from "@/components/charts/LeadStatusChart";
 import InboundHeatmapChart from "@/components/charts/InboundHeatmapChart";
 import FilterBar from "@/components/dashboard/FilterBar";
-import NeedsActionTable from "@/components/dashboard/NeedsActionTable";
-import Pagination from "@/components/dashboard/Pagination";
+import BrandDealTable from "@/components/dashboard/BrandDealTable";
 import WeekendToggle from "@/components/dashboard/WeekendToggle";
 import StatTile from "@/components/dashboard/StatTile";
 import Card from "@/components/ui/Card";
@@ -37,10 +36,6 @@ import LegendKey from "@/components/ui/LegendKey";
 import { RESPONSE_SERIES, VOLUME_SERIES } from "@/lib/chart-series";
 
 export const dynamic = "force-dynamic";
-
-/** Sepuluh baris muat satu layar tanpa kartu tabelnya jadi lebih tinggi dari chart. */
-const NEEDS_ACTION_PAGE_SIZE = 10;
-const NEEDS_ACTION_PAGE_PARAM = "deal_page";
 
 function readNumberParam(
   value: string | string[] | undefined,
@@ -77,13 +72,6 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
   const excludeWeekend =
     responseMode !== "all_working" && rawWeekend === "off";
 
-  const needsActionPage = readNumberParam(
-    params[NEEDS_ACTION_PAGE_PARAM],
-    1,
-    1,
-    10_000
-  );
-
   const { startDate, endDate, days } = resolveRange(range, DEFAULT_TIMEZONE);
   const rangeParams = { startDate, endDate, timezone: DEFAULT_TIMEZONE };
 
@@ -105,10 +93,7 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
     }),
     getInboundHeatmap(rangeParams),
     getLeadStatus(rangeParams),
-    getNeedsAction({
-      page: needsActionPage,
-      pageSize: NEEDS_ACTION_PAGE_SIZE,
-    }),
+    getAllNeedsAction(),
   ]);
 
   const summary = summaryResult.data;
@@ -337,32 +322,17 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
           aside={
             needsAction ? (
               <span className="text-xs text-ink-muted">
-                {formatNumber(needsAction.metapaging.total_data)} brand deal
+                {formatNumber(needsAction.total)} brand deal
               </span>
             ) : undefined
           }
           footnote="Daftar ini lepas dari rentang tanggal — deal lama tetap terbaca. Status dibaca dari arah pesan terakhir: kalau dari brand, bola ada di kita."
         >
           {needsAction ? (
-            <>
-              <NeedsActionTable
-                entries={needsAction.list}
-                timezone={DEFAULT_TIMEZONE}
-                emptyMessage={
-                  needsAction.metapaging.current_page > 1
-                    ? "Halaman ini sudah kosong — daftarnya mungkin berubah sejak halaman terakhir dibuka."
-                    : "Belum ada percakapan yang brand-nya sudah diisi."
-                }
-              />
-              <Pagination
-                param={NEEDS_ACTION_PAGE_PARAM}
-                page={needsAction.metapaging.current_page}
-                totalPage={needsAction.metapaging.total_page}
-                totalData={needsAction.metapaging.total_data}
-                shown={needsAction.list.length}
-                pageSize={needsAction.metapaging.page_size}
-              />
-            </>
+            <BrandDealTable
+              entries={needsAction.list}
+              timezone={DEFAULT_TIMEZONE}
+            />
           ) : (
             <EmptyState message="Data tidak tersedia." />
           )}
