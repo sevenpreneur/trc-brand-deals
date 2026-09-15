@@ -7,7 +7,7 @@ import type { ConversationListEntry } from "@/apis/knowledge";
 import {
   deleteConversationAction,
   renameConversationAction,
-} from "@/app/knowledge/actions";
+} from "@/app/(dashboard)/knowledge/actions";
 
 interface ThreadListProps {
   entries: ConversationListEntry[];

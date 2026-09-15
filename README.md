@@ -4,12 +4,13 @@ Dashboard evaluasi 360° workflow inbound WhatsApp brand deals TRC. Semua angka
 di-generate otomatis dari data percakapan lewat endpoint `stats` Pureva API —
 tidak ada laporan manual yang ditulis orang yang dievaluasi.
 
-Dua halaman, dipilih lewat sidebar:
+Dua halaman, dipilih lewat sidebar — keduanya di balik login:
 
 | Halaman | Isi |
 | --- | --- |
-| **Dashboard** ([`app/page.tsx`](app/page.tsx)) | Enam blok visualisasi + filter |
-| **Knowledge** ([`app/knowledge/`](app/knowledge/)) | Chatbot internal untuk menanyakan kondisi brand deal |
+| **Dashboard** ([`app/(dashboard)/page.tsx`](app/%28dashboard%29/page.tsx)) | Enam blok visualisasi + filter |
+| **Knowledge** ([`app/(dashboard)/knowledge/`](app/%28dashboard%29/knowledge/)) | Chatbot internal untuk menanyakan kondisi brand deal |
+| **Login** ([`app/auth/login/page.tsx`](app/auth/login/page.tsx)) | Email + password, satu-satunya halaman tanpa sesi |
 
 ## Setup
 
@@ -22,7 +23,7 @@ npm run dev
 | Env | Isi |
 | --- | --- |
 | `BASE_URL` | `https://pureva-api.up.railway.app` |
-| `CLIENT_SECRET` | Bearer token statis untuk `/api/v1/stats/*` |
+| `CLIENT_SECRET` | Bearer token statis untuk `login`, `/api/v1/stats/*`, dan `/api/v1/knowledge/*` |
 | `TENANT_ID` | Tenant TRC yang di-scope pada tiap request |
 
 Ketiganya hanya dibaca di server ([`apis/api.ts`](apis/api.ts) memakai
@@ -42,26 +43,77 @@ npx tsc --noEmit -p .   # tidak ada script typecheck terpisah
 ## Struktur
 
 ```
+proxy.ts     cek optimistik cookie sesi sebelum route dirender (dulu middleware.ts)
 apis/
   api.ts     callApi: fetch + Bearer + envelope { success, code, status, message, data }
+  auth.ts    login / check-session / logout
+  session.ts cookie sesi, getSession(), requireSession(), logoutUser()
   stat.ts    wrapper tiap endpoint /api/v1/stats/* + tipe responsnya
   knowledge.ts CRUD thread Knowledge + pembuka stream jawaban
 lib/
+  constants.ts       nama cookie, path login, penyaring redirectTo
   format.ts          durasi, tanggal, angka, preset rentang, tick sumbu
   chart-series.ts    definisi seri & warna (dipakai chart + legend di server)
-  types.ts           StatusName, isSuccessStatus, metapaging
+  types.ts           StatusName, isSuccessStatus, metapaging, SessionUser
   knowledge-stream.ts parser SSE + streamChat() untuk sisi klien
 app/
-  page.tsx                 dashboard
-  knowledge/               halaman chat + server action rename/hapus
+  layout.tsx               root: font + globals, tanpa sidebar
+  (dashboard)/             semua yang butuh sesi; layout-nya memasang sidebar
+    page.tsx               dashboard
+    knowledge/             halaman chat + server action rename/hapus
+  auth/
+    actions.ts             server action login & logout
+    login/page.tsx         halaman login
   api/knowledge/chat/      route handler yang mem-proxy stream dari backend
 components/
+  auth/        form login
   charts/      client component recharts
   dashboard/   stat tile, filter, tabel
   knowledge/   thread chat, composer, daftar thread, renderer markdown
   layout/      sidebar
   ui/          card, legend, empty state
 ```
+
+`(dashboard)` adalah route group: namanya tidak masuk ke URL, jadi dashboard tetap
+di `/` dan Knowledge tetap di `/knowledge`. Gunanya memisahkan shell bersidebar dari
+halaman auth yang tidak boleh punya sidebar.
+
+## Auth
+
+Login email + password menukar kredensial dengan JWT lewat `POST /api/v1/auth/login`,
+lalu JWT itu disimpan sebagai cookie `trc_session` yang `httpOnly` — browser tidak
+pernah bisa membacanya dari JavaScript. Umur cookie dipatok ke `expires_at` dari
+backend supaya tidak hidup lebih lama dari tokennya sendiri.
+
+Dua kredensial yang tidak saling menggantikan: `CLIENT_SECRET` milik aplikasi
+(dipakai `login`, `stats/*`, `knowledge/*`) dan JWT milik pengguna (dipakai
+`check-session` dan `logout`). `callApi` memakai `CLIENT_SECRET` kecuali pemanggilnya
+mengoper `token`.
+
+Sesi divalidasi di tiga lapis, masing-masing menutup celah yang tidak ditutup lapis lain:
+
+| Lapis | Yang dicek | Kenapa |
+| --- | --- | --- |
+| [`proxy.ts`](proxy.ts) | cookie-nya ada atau tidak | Jalan sebelum route dirender, jadi pengunjung tanpa cookie tidak perlu menunggu panggilan API. Tidak memanggil `check-session`: proxy jalan di tiap request termasuk prefetch. |
+| `requireSession()` di tiap page | `check-session` ke backend | Layout tidak ikut render ulang tiap navigasi client, page ikut — jadi pagar yang sebenarnya ada di page. |
+| server action & route handler | `getSession()` | Keduanya endpoint POST publik; pagar di page tidak berlaku untuk pemanggil yang menembaknya langsung. |
+
+`check-session` membaca ulang profil dari database tiap panggilan, bukan dari isi JWT,
+jadi perubahan peran atau akses tenant langsung terbaca dan user yang dinonaktifkan
+langsung kehilangan sesinya.
+
+Halaman login sengaja **tidak** dilempar balik oleh proxy saat cookie-nya ada. Cookie
+yang sudah dicabut backend akan memantul tanpa henti kalau begitu: proxy melempar ke
+`/`, `requireSession()` menolak dan melempar balik ke login. Yang memutuskan halaman
+login adalah `getSession()` di halaman itu sendiri, karena hanya dia yang tahu token
+itu masih sah atau tidak.
+
+`?redirectTo=` disaring [`getSafeRedirect()`](lib/constants.ts): hanya path internal
+yang diterima, jadi `//evil.com` dan URL absolut jatuh ke `/`.
+
+Belum ada pendaftaran mandiri, reset password, atau pembatasan per-peran — baris
+`users` masih diisi manual lewat SQL, dan `users.role` belum ditegakkan backend.
+`tenant_ids` dari login juga belum dipakai: scope tenant masih dari env `TENANT_ID`.
 
 ## Knowledge
 

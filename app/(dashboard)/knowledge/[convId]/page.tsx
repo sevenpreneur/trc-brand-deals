@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { getConversation } from "@/apis/knowledge";
+import { requireSession } from "@/apis/session";
 import ChatThread from "@/components/knowledge/ChatThread";
 
 export const dynamic = "force-dynamic";
@@ -7,6 +8,8 @@ export const dynamic = "force-dynamic";
 export default async function KnowledgeChatPage({
   params,
 }: PageProps<"/knowledge/[convId]">) {
+  await requireSession();
+
   const { convId } = await params;
   const { data, error } = await getConversation(convId);
 

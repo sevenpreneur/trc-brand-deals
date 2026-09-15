@@ -35,10 +35,9 @@ function statusNameFromCode(code: number): StatusName {
 
 export async function callApi<T = unknown>(
   path: string,
-  options: { method?: string; body?: unknown } = {}
+  options: { method?: string; body?: unknown; token?: string } = {}
 ): Promise<ApiEnvelope<T>> {
   const baseUrl = process.env.BASE_URL;
-  const clientSecret = process.env.CLIENT_SECRET;
 
   if (!baseUrl) {
     return {
@@ -47,7 +46,13 @@ export async function callApi<T = unknown>(
       message: "BASE_URL is not configured",
     };
   }
-  if (!clientSecret) {
+
+  const { method = "POST", body, token } = options;
+
+  // CLIENT_SECRET milik aplikasi; JWT milik pengguna (check-session, logout).
+  const bearer = token ?? process.env.CLIENT_SECRET;
+
+  if (!bearer) {
     return {
       code: 500,
       status: "INTERNAL_SERVER_ERROR",
@@ -55,15 +60,13 @@ export async function callApi<T = unknown>(
     };
   }
 
-  const { method = "POST", body } = options;
-
   let response: Response;
   try {
     response = await fetch(new URL(path, baseUrl).toString(), {
       method,
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${clientSecret}`,
+        Authorization: `Bearer ${bearer}`,
       },
       body: body !== undefined ? JSON.stringify(body) : undefined,
       cache: "no-store",

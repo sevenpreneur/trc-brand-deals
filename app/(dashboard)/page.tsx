@@ -35,6 +35,7 @@ import Card from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
 import LegendKey from "@/components/ui/LegendKey";
 import { RESPONSE_SERIES, VOLUME_SERIES } from "@/lib/chart-series";
+import { requireSession } from "@/apis/session";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,9 @@ function readNumberParam(
 }
 
 export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
+  // Page render ulang tiap navigasi client, layout tidak — pagar sesi ada di sini.
+  await requireSession();
+
   const params = await searchParams;
 
   const rawRange = Array.isArray(params.range) ? params.range[0] : params.range;

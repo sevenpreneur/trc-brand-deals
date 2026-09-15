@@ -2,6 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useFormStatus } from "react-dom";
+import { logoutAction } from "@/app/auth/actions";
+import { Avatar } from "@/components/dashboard/TableParts";
+import type { SessionUser } from "@/lib/types";
 
 const NAV = [
   { href: "/", label: "Dashboard", hint: "Angka evaluasi 360" },
@@ -86,7 +90,63 @@ function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
 }
 
-export default function Sidebar() {
+/** Tombolnya perlu tahu form induknya sedang jalan — karena itu komponen terpisah. */
+function LogoutButton({ compact = false }: { compact?: boolean }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      title="Keluar"
+      aria-label="Keluar"
+      className={
+        compact
+          ? "flex size-8 items-center justify-center rounded-full text-ink-2 transition hover:bg-surface-sunken hover:text-ink disabled:opacity-50"
+          : "flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-ink-2 transition hover:bg-surface-sunken hover:text-ink disabled:opacity-50"
+      }
+    >
+      <svg viewBox="0 0 20 20" fill="none" aria-hidden className="size-4">
+        <path
+          d="M12.5 6V4.5A1.5 1.5 0 0 0 11 3H5.5A1.5 1.5 0 0 0 4 4.5v11A1.5 1.5 0 0 0 5.5 17H11a1.5 1.5 0 0 0 1.5-1.5V14"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path
+          d="M8.5 10h8.5m0 0-2.5-2.5M17 10l-2.5 2.5"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+      {!compact && <span>{pending ? "Keluar…" : "Keluar"}</span>}
+    </button>
+  );
+}
+
+/** Avatar huruf, bukan `user.avatar` — sama seperti baris tabel kontak. */
+function UserBlock({ user }: { user: SessionUser }) {
+  return (
+    <form
+      action={logoutAction}
+      className="mt-3 flex items-center gap-2.5 border-t border-hairline px-3 pt-3"
+    >
+      <Avatar name={user.full_name} />
+      <span className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate text-[13px] font-bold text-ink">
+          {user.full_name}
+        </span>
+        <span className="truncate text-[11px] text-ink-muted">{user.role}</span>
+      </span>
+      <LogoutButton />
+    </form>
+  );
+}
+
+export default function Sidebar({ user }: { user: SessionUser }) {
   const pathname = usePathname();
 
   const items = NAV.map((item) => {
@@ -135,6 +195,7 @@ export default function Sidebar() {
           Angka di dashboard dan jawaban di Knowledge datang dari sumber yang
           sama, jadi keduanya selalu bisa dicek silang.
         </p>
+        <UserBlock user={user} />
       </aside>
 
       {/* Mobile: bar horizontal di atas konten. */}
@@ -159,6 +220,10 @@ export default function Sidebar() {
             );
           })}
         </nav>
+        {/* Bar sempit: nama tidak muat, jadi sisakan tombol keluarnya saja. */}
+        <form action={logoutAction} className="flex items-center">
+          <LogoutButton compact />
+        </form>
       </header>
     </>
   );

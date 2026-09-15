@@ -31,3 +31,19 @@ export type Metapaging = {
   current_page: number;
   page_size: number;
 };
+
+/** Backend belum menegakkan peran — untuk sekarang UI yang membatasi. */
+export type UserRole = "Super Admin" | "Administrator" | "Member";
+
+/** Bentuk yang sama dikembalikan `login` dan `check-session`. */
+export type SessionUser = {
+  id: string;
+  full_name: string;
+  email: string;
+  avatar: string | null;
+  role: UserRole;
+  /** Selalu "active" di respons; user inactive diperlakukan seperti tidak ada. */
+  status: string;
+  /** Tenant yang boleh diakses, urut waktu pemberian akses. Bisa kosong. */
+  tenant_ids: string[];
+};

@@ -1,4 +1,5 @@
 import { getConversations } from "@/apis/knowledge";
+import { requireSession } from "@/apis/session";
 import ThreadList from "@/components/knowledge/ThreadList";
 
 export const dynamic = "force-dynamic";
@@ -6,6 +7,8 @@ export const dynamic = "force-dynamic";
 export default async function KnowledgeLayout({
   children,
 }: LayoutProps<"/knowledge">) {
+  await requireSession();
+
   const { data, error } = await getConversations({ pageSize: 50 });
   const entries = data?.list ?? [];
 

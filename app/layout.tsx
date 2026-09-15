@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
-import Sidebar from "@/components/layout/Sidebar";
 import "./globals.css";
 
 /** Inter untuk seluruh UI — menyamai design system Genesis. */
@@ -27,11 +26,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="id"
       className={`${inter.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full">
-        <Sidebar />
-        {/* Padding kiri menyisakan ruang untuk sidebar yang posisinya fixed. */}
-        <div className="flex min-h-dvh flex-col lg:pl-62">{children}</div>
-      </body>
+      {/* Shell dashboard ada di app/(dashboard)/layout.tsx: halaman auth tanpa sidebar. */}
+      <body className="min-h-full">{children}</body>
     </html>
   );
 }

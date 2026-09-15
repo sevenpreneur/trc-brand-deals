@@ -1,7 +1,17 @@
 import { openChatStream } from "@/apis/knowledge";
+import { getSession } from "@/apis/session";
 
 /** Proxy stream Knowledge supaya `CLIENT_SECRET` dan `TENANT_ID` tidak pernah sampai ke browser. */
 export async function POST(request: Request) {
+  // Proxy melewati /api supaya fetch tidak dibalas HTML login, jadi dicek di sini.
+  const { user } = await getSession();
+  if (!user) {
+    return Response.json(
+      { success: false, code: 401, message: "Sesi berakhir. Silakan masuk lagi." },
+      { status: 401 }
+    );
+  }
+
   let body: { conv_id?: string | null; message?: string };
   try {
     body = await request.json();
