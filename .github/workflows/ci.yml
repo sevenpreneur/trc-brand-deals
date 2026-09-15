@@ -1,0 +1,40 @@
+name: CI
+
+# Cek tiap PR ke main dan tiap push ke main, biar error ketahuan sebelum
+# ke-deploy Vercel. Lint, typecheck, dan build dijalankan berurutan.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Kalau ada push baru ke branch/PR yang sama, run lama dibatalkan.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # typecheck menjalankan `next typegen` dulu, jadi .next/types
+      # (PageProps/LayoutProps) tersedia untuk tsc tanpa perlu build penuh.
+      - name: Typecheck
+        run: npm run typecheck
+
+      # Pages force-dynamic, jadi build tidak butuh env backend.
+      - name: Build
+        run: npm run build
