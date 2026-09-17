@@ -11,37 +11,27 @@ import {
 import {
   DEFAULT_RANGE,
   DEFAULT_RESPONSE_MODE,
-  formatDuration,
-  formatDurationTick,
   formatNumber,
-  formatPercent,
-  formatRupiahCompact,
+  formatRangeLabel,
   isRangeValue,
   isResponseMode,
   resolveRange,
-  resolveResponseMode,
   type RangeValue,
 } from "@/lib/format";
-import VolumeChart from "@/components/charts/VolumeChart";
-import ResponseTimeChart from "@/components/charts/ResponseTimeChart";
-import LeadStatusChart from "@/components/charts/LeadStatusChart";
 import InboundHeatmapChart from "@/components/charts/InboundHeatmapChart";
-import FilterBar from "@/components/dashboard/FilterBar";
-import NeedsActionTable from "@/components/dashboard/NeedsActionTable";
-import Pagination from "@/components/dashboard/Pagination";
-import WeekendToggle from "@/components/dashboard/WeekendToggle";
-import StatTile from "@/components/dashboard/StatTile";
+import LeadsTabs from "@/components/leads/LeadsTabs";
+import LeadsFilterBar from "@/components/leads/LeadsFilterBar";
+import SummaryGrid from "@/components/leads/SummaryGrid";
+import ReplyTimeTrend from "@/components/leads/ReplyTimeTrend";
+import ConversationVolume from "@/components/leads/ConversationVolume";
+import LeadFunnel from "@/components/leads/LeadFunnel";
 import Card from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
-import LegendKey from "@/components/ui/LegendKey";
-import { RESPONSE_SERIES, VOLUME_SERIES } from "@/lib/chart-series";
 import { requireSession } from "@/apis/session";
 
 export const dynamic = "force-dynamic";
 
-/** Sepuluh baris muat satu layar tanpa kartu tabelnya jadi lebih tinggi dari chart. */
-const NEEDS_ACTION_PAGE_SIZE = 10;
-const NEEDS_ACTION_PAGE_PARAM = "deal_page";
+const BUILT_VIEWS = new Set(["overview"]);
 
 function readNumberParam(
   value: string | string[] | undefined,
@@ -55,7 +45,7 @@ function readNumberParam(
   return Math.round(parsed);
 }
 
-export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
+export default async function LeadsPage({ searchParams }: PageProps<"/">) {
   // Page render ulang tiap navigasi client, layout tidak — pagar sesi ada di sini.
   await requireSession();
 
@@ -72,312 +62,164 @@ export default async function AnalyticsPage({ searchParams }: PageProps<"/">) {
 
   const rawMode = Array.isArray(params.mode) ? params.mode[0] : params.mode;
   const responseMode = isResponseMode(rawMode) ? rawMode : DEFAULT_RESPONSE_MODE;
-  const mode = resolveResponseMode(responseMode);
 
-  const rawWeekend = Array.isArray(params.weekend)
-    ? params.weekend[0]
-    : params.weekend;
-  // Mode jam kerja sudah menolak jam di luar Senin–Jumat, jadi toggle-nya dimatikan di situ.
-  const excludeWeekend =
-    responseMode !== "all_working" && rawWeekend === "off";
-
-  const needsActionPage = readNumberParam(
-    params[NEEDS_ACTION_PAGE_PARAM],
-    1,
-    1,
-    10_000
-  );
+  const rawView = Array.isArray(params.view) ? params.view[0] : params.view;
+  const view = rawView ?? "overview";
 
   const { startDate, endDate, days } = resolveRange(range, DEFAULT_TIMEZONE);
   const rangeParams = { startDate, endDate, timezone: DEFAULT_TIMEZONE };
 
-  const [
-    summaryResult,
-    volume,
-    responseTime,
-    heatmap,
-    leadStatus,
-    needsAction,
-  ] = await Promise.all([
-    getSummary({ ...rangeParams, targetSeconds, responseMode }),
-    getChatsVolume(rangeParams),
-    getResponseTime({
-      ...rangeParams,
-      targetSeconds,
-      excludeWeekend,
-      responseMode,
-    }),
-    getInboundHeatmap(rangeParams),
-    getLeadStatus(rangeParams),
-    getNeedsAction({
-      page: needsActionPage,
-      pageSize: NEEDS_ACTION_PAGE_SIZE,
-    }),
-  ]);
+  const [summaryResult, volume, responseTime, heatmap, leadStatus, needsAction] =
+    await Promise.all([
+      getSummary({ ...rangeParams, targetSeconds, responseMode }),
+      getChatsVolume(rangeParams),
+      getResponseTime({ ...rangeParams, targetSeconds, responseMode }),
+      getInboundHeatmap(rangeParams),
+      getLeadStatus(rangeParams),
+      getNeedsAction({ page: 1, pageSize: 1 }),
+    ]);
 
   const summary = summaryResult.data;
+  const leadsCount = needsAction?.metapaging.total_data;
+  const queueCount = summary?.unanswered_conversation_count;
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 py-8 sm:px-6 lg:px-10">
-      <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-[28px] leading-tight font-extrabold tracking-tight text-ink">
-            TRC Brand Deals
-          </h1>
-          <p className="mt-1.5 text-[13px] text-ink-2">
-            Sumber: WhatsApp Cloud API (Coexistence)
-          </p>
-        </div>
+      <header>
+        <h1 className="text-[26px] leading-tight font-semibold tracking-tight text-ink">
+          WhatsApp Leads
+        </h1>
+        <p className="mt-1.5 text-[13px] text-ink-2">
+          Lead WhatsApp masuk, kesehatan balasan, funnel, dan peluang cross-sell.
+        </p>
       </header>
 
       <div className="mt-6">
-        <FilterBar
-          range={range}
-          targetSeconds={targetSeconds}
-          responseMode={responseMode}
+        <LeadsTabs
+          counts={{
+            leads: leadsCount,
+            queue: queueCount,
+            conversations: leadsCount,
+          }}
         />
       </div>
 
-      {summaryResult.error && (
-        <div
-          role="alert"
-          className="mt-6 rounded-2xl border border-hairline bg-surface p-5 shadow-card"
-        >
-          <p className="text-sm font-semibold text-ink">
-            Data tidak bisa diambil dari API
-          </p>
-          <p className="mt-1 text-sm text-ink-2">{summaryResult.error}</p>
-          <p className="mt-2 text-xs text-ink-muted">
-            Cek <code className="font-mono">BASE_URL</code>,{" "}
-            <code className="font-mono">CLIENT_SECRET</code>, dan{" "}
-            <code className="font-mono">TENANT_ID</code> di{" "}
-            <code className="font-mono">.env.local</code>.
-          </p>
+      {!BUILT_VIEWS.has(view) ? (
+        <div className="mt-6">
+          <EmptyState
+            message={`Tab "${view}" sedang dibangun — untuk sekarang baru Overview yang siap. Leads, Queue, dan Conversations menyusul.`}
+          />
         </div>
-      )}
+      ) : (
+        <>
+          <p className="mt-5 text-xs text-ink-muted">
+            Pureva <span className="font-medium text-ink-2">/stats</span> · window{" "}
+            <span className="font-medium text-ink-2">
+              {formatRangeLabel(startDate, endDate)}
+            </span>{" "}
+            · Asia/Jakarta
+            {summary && (
+              <>
+                {" · "}
+                {formatNumber(summary.unanswered_conversation_count)} belum dibalas
+              </>
+            )}
+          </p>
 
-      {/* Volume & responsiveness jadi stat tile: story tiap kartu satu angka. */}
-      <section className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatTile
-          label="Inbound / hari"
-          info="Rata-rata jumlah percakapan yang mengirim pesan masuk setiap hari. Ini bukan jumlah pesan, karena satu percakapan tetap dihitung satu kali meski mengirim banyak pesan."
-          value={summary ? formatNumber(summary.inbound_per_day, 2) : "—"}
-          detail={
-            summary
-              ? `${formatNumber(summary.inbound_turn_count)} ${mode.turn} dalam ${days} hari`
-              : undefined
-          }
-        />
-        <StatTile
-          starred
-          label={mode.tile}
-          info={`Waktu tengah untuk membalas ${mode.turn}. Artinya, separuh balasan selesai lebih cepat dari angka ini dan separuh lainnya lebih lama. P90 berarti 90% balasan selesai dalam waktu tersebut, sedangkan 10% sisanya lebih lama. Yang diukur ${mode.scope}.`}
-          value={summary ? formatDuration(summary.median_response_seconds) : "—"}
-          detail={
-            summary
-              ? `p90 ${formatDuration(summary.p90_response_seconds)} · target ${formatDurationTick(targetSeconds)}`
-              : undefined
-          }
-          detailTone={
-            summary?.median_response_seconds != null &&
-            summary.median_response_seconds <= targetSeconds
-              ? "good"
-              : "warning"
-          }
-        />
-        <StatTile
-          starred
-          label={mode.unanswered}
-          info={`Jumlah ${mode.turn} yang belum mendapat balasan sama sekali. Angka ini tidak dibatasi target waktu, jadi pesan yang sudah lama masuk tetap dihitung selama belum dibalas.`}
-          value={summary ? formatNumber(summary.unanswered_turn_count) : "—"}
-          detail={
-            summary
-              ? `${formatNumber(summary.unanswered_conversation_count)} percakapan · target 0`
-              : undefined
-          }
-          detailTone={
-            summary && summary.unanswered_turn_count === 0 ? "good" : "critical"
-          }
-        />
-        <StatTile
-          label="Dibalas dalam target"
-          info={`Persentase ${mode.turn} yang dibalas dalam batas waktu pada filter. Perhitungan ini hanya memakai pesan yang sudah dibalas, sedangkan pesan yang belum dibalas dihitung di kartu sebelahnya.`}
-          value={summary ? formatPercent(summary.within_target_percent) : "—"}
-          detail={
-            summary
-              ? `${formatNumber(summary.within_target_count)} dari ${formatNumber(summary.replied_turn_count)} turn ≤ ${formatDurationTick(targetSeconds)} · target ≥ 80%`
-              : undefined
-          }
-          detailTone={
-            summary && summary.within_target_percent >= 80 ? "good" : "warning"
-          }
-        />
-      </section>
-
-      <section className="mt-4 grid gap-4 xl:grid-cols-12">
-        <Card
-          className="xl:col-span-8"
-          title="Volume percakapan per hari"
-          info="Jumlah percakapan yang menerima pesan masuk setiap hari. Percakapan baru dibuat pada hari itu, sedangkan lanjutan adalah percakapan lama yang kembali aktif."
-          description="Percakapan yang menerima pesan masuk, dipisah baru vs lanjutan"
-          aside={
-            <LegendKey
-              items={VOLUME_SERIES.map((series) => ({
-                label: series.label,
-                color: series.color,
-              }))}
+          <div className="mt-4">
+            <LeadsFilterBar
+              range={range}
+              responseMode={responseMode}
+              targetSeconds={targetSeconds}
             />
-          }
-          footnote="Baseline beban kerja. Di bawah 10 percakapan per hari, masalahnya ada di konversi — bukan kapasitas."
-        >
-          {volume && volume.list.length > 0 ? (
-            <VolumeChart data={volume.list} />
-          ) : (
-            <EmptyState message="Belum ada percakapan pada rentang ini." />
-          )}
-        </Card>
+          </div>
 
-        <Card
-          className="xl:col-span-4"
-          title="Funnel lead status"
-          info="Menunjukkan jumlah percakapan di setiap tahap, dari baru sampai selesai. Nilai tertahan hanya menjumlahkan nilai deal yang sudah diisi, bukan perkiraan nilai semua percakapan."
-          description="Percakapan yang dibuat pada rentang ini, per stage"
-          aside={
-            leadStatus ? (
-              <span className="text-xs text-ink-muted">
-                Nilai tertahan {formatRupiahCompact(leadStatus.total_project_value)}
-              </span>
-            ) : undefined
-          }
-          footnote="Win rate per stage menunjukkan bocornya di mana. Nilai tertahan hanya menghitung percakapan yang project value-nya sudah diisi, bukan estimasi seluruh percakapan di stage itu."
-        >
-          {leadStatus && leadStatus.total_conversation_count > 0 ? (
-            <LeadStatusChart
-              data={leadStatus.list}
-              total={leadStatus.total_conversation_count}
-            />
-          ) : (
-            <EmptyState message="Belum ada percakapan baru pada rentang ini." />
-          )}
-        </Card>
-      </section>
-
-      <section className="mt-4">
-        <Card
-          title="Response time — harian"
-          info={`Menunjukkan waktu tengah dan P90 balasan untuk setiap hari. P90 berarti 90% balasan selesai dalam waktu tersebut dan 10% sisanya lebih lama. Yang diukur ${mode.scope}.`}
-          description={`Median dan p90 waktu balas — ${mode.scope}`}
-          aside={
-            <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-2">
-              {responseMode !== "all_working" && (
-                <WeekendToggle excluded={excludeWeekend} />
-              )}
-              <LegendKey
-                items={[
-                  ...RESPONSE_SERIES.map((series) => ({
-                    label: series.label,
-                    color: series.color,
-                  })),
-                  {
-                    label: `Target ${formatDurationTick(targetSeconds)}`,
-                    color: "var(--ink-muted)",
-                    variant: "dash" as const,
-                  },
-                ]}
-              />
+          {summaryResult.error && (
+            <div
+              role="alert"
+              className="mt-6 rounded-lg border border-hairline bg-surface p-5"
+            >
+              <p className="text-sm font-semibold text-ink">
+                Data tidak bisa diambil dari API
+              </p>
+              <p className="mt-1 text-sm text-ink-2">{summaryResult.error}</p>
+              <p className="mt-2 text-xs text-ink-muted">
+                Cek <code className="font-mono">BASE_URL</code>,{" "}
+                <code className="font-mono">CLIENT_SECRET</code>, dan{" "}
+                <code className="font-mono">TENANT_ID</code>.
+              </p>
             </div>
-          }
-          footnote={`Median dipakai karena rata-rata tertutup outlier; p90 menunjukkan kasus terburuk. Hari tanpa turn yang dibalas sengaja dibiarkan putus, bukan disambung.${
-            responseMode === "all_working"
-              ? " Jeda di luar Senin–Jumat 09.00–18.00 tidak ikut dihitung: turn yang masuk Sabtu diukur dari Senin pagi. Libur nasional belum dikecualikan, jadi tanggal merah masih terbaca sebagai hari kerja."
-              : ""
-          }${
-            excludeWeekend
-              ? " Sabtu dan Minggu sedang dibuang dari seri, jadi angkanya membaca jam kerja saja."
-              : ""
-          }`}
-        >
-          {responseTime && responseTime.list.length > 0 ? (
-            <ResponseTimeChart
-              data={responseTime.list}
-              targetSeconds={responseTime.target_seconds ?? targetSeconds}
-            />
-          ) : (
-            <EmptyState
-              message={
-                excludeWeekend
-                  ? "Belum ada turn inbound pada hari kerja di rentang ini."
-                  : "Belum ada turn inbound pada rentang ini."
-              }
-            />
           )}
-        </Card>
-      </section>
 
-      <section className="mt-4">
-        <Card
-          title="Kapan inbound masuk"
-          info="Menunjukkan kapan pesan masuk paling sering berdasarkan hari dan jam. Semua Senin digabung di hari Senin, dan yang dihitung adalah jumlah pesan, bukan jumlah percakapan."
-          description="Pesan masuk per jam × hari dalam minggu"
-          footnote="Menentukan apakah butuh orang kedua atau cukup menggeser jam kerja — response time lambat pada jam padat berarti overload, bukan kelalaian."
-        >
-          {heatmap && heatmap.total_inbound_message_count > 0 ? (
-            <InboundHeatmapChart
-              data={heatmap.list}
-              totalInbound={heatmap.total_inbound_message_count}
-              totalOutbound={heatmap.total_outbound_message_count}
-            />
-          ) : (
-            <EmptyState message="Belum ada pesan masuk pada rentang ini." />
-          )}
-        </Card>
-      </section>
-
-      <section className="mt-4 grid gap-4">
-        <Card
-          title="Brand deal yang sedang berjalan"
-          info="Berisi semua percakapan yang sudah memiliki nama brand, termasuk yang lebih lama dari filter tanggal. Daftar dimulai dari percakapan yang paling lama tidak aktif dan menunjukkan siapa yang sedang ditunggu."
-          description="Semua percakapan yang brand-nya sudah diisi, diurutkan dari yang paling lama diam"
-          aside={
-            needsAction ? (
-              <span className="text-xs text-ink-muted">
-                {formatNumber(needsAction.metapaging.total_data)} brand deal
-              </span>
-            ) : undefined
-          }
-          footnote="Daftar ini lepas dari rentang tanggal — deal lama tetap terbaca. Status dibaca dari arah pesan terakhir: kalau dari brand, bola ada di kita."
-        >
-          {needsAction ? (
-            <>
-              <NeedsActionTable
-                entries={needsAction.list}
-                timezone={DEFAULT_TIMEZONE}
-                emptyMessage={
-                  needsAction.metapaging.current_page > 1
-                    ? "Halaman ini sudah kosong — daftarnya mungkin berubah sejak halaman terakhir dibuka."
-                    : "Belum ada percakapan yang brand-nya sudah diisi."
-                }
+          {summary && (
+            <section className="mt-6">
+              <SummaryGrid
+                summary={summary}
+                days={days}
+                targetSeconds={targetSeconds}
               />
-              <Pagination
-                param={NEEDS_ACTION_PAGE_PARAM}
-                page={needsAction.metapaging.current_page}
-                totalPage={needsAction.metapaging.total_page}
-                totalData={needsAction.metapaging.total_data}
-                shown={needsAction.list.length}
-                pageSize={needsAction.metapaging.page_size}
-              />
-            </>
-          ) : (
-            <EmptyState message="Data tidak tersedia." />
+            </section>
           )}
-        </Card>
-      </section>
 
-      <footer className="mt-8 border-t border-hairline pt-4 text-xs leading-relaxed text-ink-muted">
-        Metrics menilai proses, bukan menghakimi orang. Lost reason dan cycle
-        time inbound → closed belum bisa dihitung — butuh kolom alasan penutupan
-        dan timestamp stage closed pada schema percakapan lebih dulu.
-      </footer>
+          <section className="mt-4 grid gap-4 xl:grid-cols-2">
+            <Card
+              title="Reply time trend"
+              info="Median dan P90 waktu balas per hari, plus persentase turn yang dibalas dalam target. P90 diredupkan di bawah 10 turn karena sampelnya terlalu kecil."
+              description="Median · P90 · % dibalas ≤ target"
+            >
+              {responseTime && responseTime.list.length > 0 ? (
+                <ReplyTimeTrend data={responseTime.list} />
+              ) : (
+                <EmptyState message="Belum ada turn inbound pada rentang ini." />
+              )}
+            </Card>
+
+            <Card
+              title="Conversation volume"
+              info="Jumlah percakapan aktif per hari, dipisah percakapan baru vs lanjutan. Satu percakapan bisa terhitung di lebih dari satu hari."
+              description="Percakapan aktif per hari — baru vs lanjutan"
+            >
+              {volume && volume.list.length > 0 ? (
+                <ConversationVolume data={volume.list} />
+              ) : (
+                <EmptyState message="Belum ada percakapan pada rentang ini." />
+              )}
+            </Card>
+          </section>
+
+          <section className="mt-4">
+            <Card
+              title="Inbound message hours"
+              info="Kapan pesan masuk paling sering, per jam × hari. Semua Senin digabung; yang dihitung jumlah pesan, bukan percakapan."
+              description="Pesan masuk per jam × hari dalam minggu — Asia/Jakarta"
+            >
+              {heatmap && heatmap.total_inbound_message_count > 0 ? (
+                <InboundHeatmapChart
+                  data={heatmap.list}
+                  totalInbound={heatmap.total_inbound_message_count}
+                  totalOutbound={heatmap.total_outbound_message_count}
+                />
+              ) : (
+                <EmptyState message="Belum ada pesan masuk pada rentang ini." />
+              )}
+            </Card>
+          </section>
+
+          <section className="mt-4">
+            <Card
+              title="Lead funnel"
+              info="Jumlah percakapan di tiap stage, dari cold sampai closed, dengan nilai tertahan dan split AI/Human. 'Closed' berarti percakapan berakhir, bukan deal menang."
+              description="Percakapan yang dibuat pada rentang ini, per stage"
+            >
+              {leadStatus && leadStatus.total_conversation_count > 0 ? (
+                <LeadFunnel funnel={leadStatus} />
+              ) : (
+                <EmptyState message="Belum ada percakapan baru pada rentang ini." />
+              )}
+            </Card>
+          </section>
+        </>
+      )}
     </div>
   );
 }
