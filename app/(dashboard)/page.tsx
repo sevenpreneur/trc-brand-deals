@@ -1,6 +1,7 @@
 import {
   DEFAULT_TARGET_SECONDS,
   DEFAULT_TIMEZONE,
+  getAllNeedsAction,
   getChatsVolume,
   getInboundHeatmap,
   getLeadStatus,
@@ -25,13 +26,16 @@ import SummaryGrid from "@/components/leads/SummaryGrid";
 import ReplyTimeTrend from "@/components/leads/ReplyTimeTrend";
 import ConversationVolume from "@/components/leads/ConversationVolume";
 import LeadFunnel from "@/components/leads/LeadFunnel";
+import ConversationsList from "@/components/leads/ConversationsList";
 import Card from "@/components/ui/Card";
 import EmptyState from "@/components/ui/EmptyState";
 import { requireSession } from "@/apis/session";
 
 export const dynamic = "force-dynamic";
 
-const BUILT_VIEWS = new Set(["overview"]);
+const BUILT_VIEWS = new Set(["overview", "conversations"]);
+
+const noop = Promise.resolve(null);
 
 function readNumberParam(
   value: string | string[] | undefined,
@@ -65,22 +69,27 @@ export default async function LeadsPage({ searchParams }: PageProps<"/">) {
 
   const rawView = Array.isArray(params.view) ? params.view[0] : params.view;
   const view = rawView ?? "overview";
+  const showOverview = view === "overview";
+  const showConversations = view === "conversations";
 
   const { startDate, endDate, days } = resolveRange(range, DEFAULT_TIMEZONE);
   const rangeParams = { startDate, endDate, timezone: DEFAULT_TIMEZONE };
 
-  const [summaryResult, volume, responseTime, heatmap, leadStatus, needsAction] =
+  const [summaryResult, volume, responseTime, heatmap, leadStatus, needsCount, allNeeds] =
     await Promise.all([
       getSummary({ ...rangeParams, targetSeconds, responseMode }),
-      getChatsVolume(rangeParams),
-      getResponseTime({ ...rangeParams, targetSeconds, responseMode }),
-      getInboundHeatmap(rangeParams),
-      getLeadStatus(rangeParams),
+      showOverview ? getChatsVolume(rangeParams) : noop,
+      showOverview
+        ? getResponseTime({ ...rangeParams, targetSeconds, responseMode })
+        : noop,
+      showOverview ? getInboundHeatmap(rangeParams) : noop,
+      showOverview ? getLeadStatus(rangeParams) : noop,
       getNeedsAction({ page: 1, pageSize: 1 }),
+      showConversations ? getAllNeedsAction() : noop,
     ]);
 
   const summary = summaryResult.data;
-  const leadsCount = needsAction?.metapaging.total_data;
+  const leadsCount = needsCount?.metapaging.total_data;
   const queueCount = summary?.unanswered_conversation_count;
 
   return (
@@ -104,13 +113,7 @@ export default async function LeadsPage({ searchParams }: PageProps<"/">) {
         />
       </div>
 
-      {!BUILT_VIEWS.has(view) ? (
-        <div className="mt-6">
-          <EmptyState
-            message={`Tab "${view}" sedang dibangun — untuk sekarang baru Overview yang siap. Leads, Queue, dan Conversations menyusul.`}
-          />
-        </div>
-      ) : (
+      {showOverview && (
         <>
           <p className="mt-5 text-xs text-ink-muted">
             Pureva <span className="font-medium text-ink-2">/stats</span> · window{" "}
@@ -219,6 +222,37 @@ export default async function LeadsPage({ searchParams }: PageProps<"/">) {
             </Card>
           </section>
         </>
+      )}
+
+      {showConversations && (
+        <section className="mt-6">
+          <Card
+            title="Conversations"
+            info="Percakapan yang ditandai perlu aksi oleh Pureva, ditambah yang belum dibalas — bukan seluruh percakapan. Filter di bawah instan, tanpa memanggil Pureva lagi."
+            description="Semua percakapan yang brand-nya sudah diisi, lepas dari rentang tanggal"
+            aside={
+              allNeeds ? (
+                <span className="text-xs text-ink-muted">
+                  {formatNumber(allNeeds.total)} percakapan
+                </span>
+              ) : undefined
+            }
+          >
+            {allNeeds ? (
+              <ConversationsList entries={allNeeds.list} />
+            ) : (
+              <EmptyState message="Data tidak tersedia." />
+            )}
+          </Card>
+        </section>
+      )}
+
+      {!BUILT_VIEWS.has(view) && (
+        <div className="mt-6">
+          <EmptyState
+            message={`Tab "${view}" sedang dibangun — untuk sekarang baru Overview dan Conversations yang siap. Leads dan Queue menyusul.`}
+          />
+        </div>
       )}
     </div>
   );
