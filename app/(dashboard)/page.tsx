@@ -116,7 +116,7 @@ export default async function LeadsPage({ searchParams }: PageProps<"/">) {
       {showOverview && (
         <>
           <p className="mt-5 text-xs text-ink-muted">
-            Pureva <span className="font-medium text-ink-2">/stats</span> · window{" "}
+            Incredium <span className="font-medium text-ink-2">/stats</span> · window{" "}
             <span className="font-medium text-ink-2">
               {formatRangeLabel(startDate, endDate)}
             </span>{" "}
@@ -228,7 +228,7 @@ export default async function LeadsPage({ searchParams }: PageProps<"/">) {
         <section className="mt-6">
           <Card
             title="Conversations"
-            info="Percakapan yang ditandai perlu aksi oleh Pureva, ditambah yang belum dibalas — bukan seluruh percakapan. Filter di bawah instan, tanpa memanggil Pureva lagi."
+            info="Percakapan yang ditandai perlu aksi oleh Incredium, ditambah yang belum dibalas — bukan seluruh percakapan. Filter di bawah instan, tanpa memanggil Incredium lagi."
             description="Semua percakapan yang brand-nya sudah diisi, lepas dari rentang tanggal"
             aside={
               allNeeds ? (

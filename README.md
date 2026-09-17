@@ -1,7 +1,7 @@
 # TRC Brand Deals — Dashboard Analytics
 
 Dashboard evaluasi 360° workflow inbound WhatsApp brand deals TRC. Semua angka
-di-generate otomatis dari data percakapan lewat endpoint `stats` Pureva API —
+di-generate otomatis dari data percakapan lewat endpoint `stats` Incredium API —
 tidak ada laporan manual yang ditulis orang yang dievaluasi.
 
 Dua halaman, dipilih lewat sidebar — keduanya di balik login:
@@ -22,7 +22,7 @@ npm run dev
 
 | Env | Isi |
 | --- | --- |
-| `BASE_URL` | `https://pureva-api.up.railway.app` |
+| `BASE_URL` | `https://incredium-wa-api.up.railway.app` |
 | `CLIENT_SECRET` | Bearer token statis untuk `login`, `/api/v1/stats/*`, dan `/api/v1/knowledge/*` |
 | `TENANT_ID` | Tenant TRC yang di-scope pada tiap request |
 
@@ -122,14 +122,14 @@ dashboard. Halaman `/knowledge` untuk thread baru, `/knowledge/<conv_id>` untuk
 thread yang sudah ada.
 
 ```
-Browser  ──POST /api/knowledge/chat──▶  Route handler  ──▶  Pureva API (SSE)
-   ▲                                    (server, pegang                │
-   └──────────── token demi token ───────  CLIENT_SECRET) ◀────────────┘
+Browser  ──POST /api/knowledge/chat──▶  Route handler  ──▶  Incredium API (SSE)
+   ▲                                    (server, pegang                   │
+   └──────────── token demi token ───────  CLIENT_SECRET) ◀───────────────┘
 ```
 
 Route handler di [`app/api/knowledge/chat/route.ts`](app/api/knowledge/chat/route.ts)
 ada supaya `CLIENT_SECRET` dan `TENANT_ID` tetap di server — browser tidak pernah
-bicara langsung ke Pureva API, sama seperti jalur data dashboard.
+bicara langsung ke Incredium API, sama seperti jalur data dashboard.
 
 Jawabannya di-stream sebagai Server-Sent Events. Menutup tab tidak membatalkan
 jawabannya: backend tetap menyelesaikan dan menyimpannya, jadi thread-nya utuh waktu
@@ -144,7 +144,7 @@ dieksekusi.
 ### Prasyarat
 
 Backend butuh tabel `kb_conversations` dan `kb_chats` (`docs/db/knowledge.sql` di repo
-`pureva-api`) plus `OPENAI_API_KEY`. Selama itu belum ada, halaman Knowledge tetap render
+`incredium-wa-api`) plus `OPENAI_API_KEY`. Selama itu belum ada, halaman Knowledge tetap render
 dan menampilkan pesan errornya — dashboard tidak terpengaruh.
 
 
